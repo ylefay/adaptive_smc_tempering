@@ -1,17 +1,12 @@
 """Test the tempered SMC steps and routine"""
-import functools
-
-import chex
-import jax
-import jax.numpy as jnp
-import jax.scipy.stats as stats
-import numpy as np
-from absl.testing import absltest
 
 import blackjax
 import blackjax.smc.resampling as resampling
-import blackjax.smc.solver as solver
-from blackjax import adaptive_tempered_smc, tempered_smc
+import jax
+import jax.numpy as jnp
+import numpy as np
+from absl.testing import absltest
+from blackjax import tempered_smc
 from blackjax.smc import extend_params
 
 
@@ -87,7 +82,7 @@ def normal_logdensity_fn(x, chol_cov):
     dim = chol_cov.shape[0]
     y = jax.scipy.linalg.solve_triangular(chol_cov, x, lower=True)
     normalizing_constant = (
-        np.sum(np.log(np.abs(np.diag(chol_cov)))) + dim * np.log(2 * np.pi) / 2.0
+            np.sum(np.log(np.abs(np.diag(chol_cov)))) + dim * np.log(2 * np.pi) / 2.0
     )
     norm_y = jnp.sum(y * y, -1)
     return -(0.5 * norm_y + normalizing_constant)
