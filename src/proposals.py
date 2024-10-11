@@ -9,12 +9,12 @@ def build_crank_nicholson_kernel(delta, C):
     """
 
     def kernel(rng_key, state, logdensity_fn, **kwargs):
-        x = state["position"]
+        x = state.position[0]
         position = 2 / (2 + delta) * x
         rw_gaussian = blackjax.additive_step_random_walk(logdensity_fn, delta * (delta + 4) / (2 + delta) ** 2 * C)
         state = rw_gaussian.init(position)
-        step = jax.jit(rw_gaussian.step)
-        new_state, info = step(rng_key, state)
+        #step = jax.jit(rw_gaussian.step)
+        new_state, info = rw_gaussian.step(rng_key, state)
         return new_state, info
 
     return kernel
