@@ -4,7 +4,6 @@ import jax.numpy as jnp
 import numpy as np
 from blackjax import tempered_smc
 from blackjax.smc.resampling import multinomial
-
 from adaptive_smc_tempering.src.experiments.logistic import get_dataset
 from adaptive_smc_tempering.src.logistic import get_log_likelihood
 from adaptive_smc_tempering.src.proposals import build_crank_nicholson_kernel
@@ -68,6 +67,6 @@ if __name__ == "__main__":
         return jax.scipy.stats.norm.logpdf(x[0], loc=jnp.zeros(dim), scale=jnp.ones(dim))
 
 
-    init_particles = [log_scale_init, coeffs_init]
+    init_particles = [log_scale_init]
     my_smc = TemperedSMC(logprior_fn, loglikelihood_fn, dim)
     my_smc.fixed_schedule_tempered_smc(OP_key, init_particles)
