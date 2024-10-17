@@ -5,8 +5,8 @@ from blackjax.mcmc import hmc
 from blackjax.smc.resampling import multinomial
 from particles import datasets
 
-from adaptive_smc_tempering.src.logistic import get_log_likelihood
-from adaptive_smc_tempering.src.proposals import build_crank_nicholson_kernel
+from src.logistic import get_log_likelihood
+from src.proposals import build_crank_nicholson_kernel
 
 
 def get_dataset(flip=True):
