@@ -1,4 +1,3 @@
-
 import sys
 
 import setuptools
@@ -26,6 +25,8 @@ setuptools.setup(
         "jaxlib",
         "numpy",
         "scikit-learn",
+        "matplotlib",
+        "particles"
     ],
     long_description_content_type="text/markdown",
     keywords="smc tempering gaussian",
