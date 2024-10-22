@@ -1,21 +1,17 @@
-from blackjax.mcmc.random_walk import generate_gaussian_noise
-from blackjax.mcmc.random_walk import init, build_additive_step
+from typing import Callable, NamedTuple
+import src.mcmc_kernels.gaussian_238_empirical as gaussian_238_empirical
 
-def build_crank_nicholson_kernel(delta, C):
-    """
-    Auxiliary gradient-based sampling algorithms, Titsias, Papaspiliopoulos, 2018
-    Eq. 4 in https://arxiv.org/pdf/1610.09641
-    """
 
-    def propose(rng_key, position):
-        x = position[0]
-        return generate_gaussian_noise(rng_key, position=position, mu=2 / (2 + delta) * x - 1, sigma=
-        delta * (delta + 4) / (2 + delta) ** 2 * C)
+class mcmc_proposal(NamedTuple):
+    mcmc_parameter_update_fn: Callable
+    build_kernel: Callable
 
-    def kernel(rng_key, state, logdensity_fn, **kwargs):
-        state = init(position=state.position, logdensity_fn=logdensity_fn)
-        new_state, info = build_additive_step()(rng_key, state, logdensity_fn, propose)
-        return new_state, info
 
-    return kernel
 
+"""
+Classic Gaussian proposal, zero-mean, covariance matrix equal to the empirical covariance of the particles scaled by gamma.
+Require an initial covariance matrix to be passed:
+    e.g., 'covariance_matrix': jnp.array([jnp.eye(dim)] * num_particles)
+"""
+gaussian_238_empirical_proposal = mcmc_proposal(gaussian_238_empirical.build_mcmc_kernel_default(),
+                                                gaussian_238_empirical.mcmc_parameter_update_fn_default)
