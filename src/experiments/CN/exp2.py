@@ -8,7 +8,7 @@ from src.SMC.SMCTempering import TemperedSMC_MCMC
 from src.problems.my_logistic_problem_sonar import *
 from src.proposals import cranck_nicholson_proposal
 from src.utils.save import save, plot
-
+from src.experiments.utils import particle_initialisation_logexp
 
 def default_title():
     now = datetime.now()
@@ -52,7 +52,7 @@ if __name__ == "__main__":
 
     @jax.vmap
     def wrapped_smc(key):
-        init_particles = [jax.random.normal(key, shape=(num_particles, dim))]
+        init_particles = particle_initialisation_logexp(key, num_particles, dim)
         return my_smc.fixed_schedule_tempered_smc(key, init_particles, initial_parameter_value, num_mcmc_steps,
                                                   lmbda_schedule)
 

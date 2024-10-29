@@ -1,13 +1,14 @@
 import os
+from datetime import datetime
 
 import numpy as np
 
 from src.SMC.SMCTempering import TemperedSMC_MCMC
+from src.experiments.utils import particle_initialisation_logexp
 from src.problems.my_logistic_problem_sonar import *
 from src.proposals import gaussian_238_empirical_proposal
 from src.utils.save import plot, save
 
-from datetime import datetime
 
 def default_title():
     now = datetime.now()
@@ -47,8 +48,7 @@ if __name__ == "__main__":
 
     @jax.vmap
     def wrapped_smc(key):
-        log_scale_init = jnp.log(jax.random.exponential(key, shape=(num_particles, dim)))
-        init_particles = [log_scale_init]
+        init_particles = particle_initialisation_logexp(key, num_particles, dim)
         return my_smc.fixed_schedule_tempered_smc(key, init_particles, initial_parameter_value, num_mcmc_steps,
                                                   lmbda_schedule)
 
