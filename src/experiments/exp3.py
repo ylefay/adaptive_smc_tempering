@@ -3,10 +3,10 @@ from datetime import datetime
 
 import numpy as np
 
-from src.SMC.SMCTempering import TemperedSMC_MCMC
+import src.SMC.SMCTempering as SMC
+import src.proposals as proposals
 from src.experiments.utils import particle_initialisation_logexp
 from src.problems.my_logistic_problem_sonar import *
-from src.proposals import gaussian_238_empirical_proposal
 from src.utils.save import plot, save
 
 
@@ -18,6 +18,8 @@ def default_title():
 
 
 if __name__ == "__main__":
+    now = datetime.now()
+
     OP_key = jax.random.PRNGKey(0)
 
     N_chains = 4
@@ -27,34 +29,43 @@ if __name__ == "__main__":
 
     keys = jax.random.split(OP_key, N_chains)
 
+    coeffs_init = np.random.randn(num_particles)
     initial_parameter_value = {'cov_particles': jnp.array([jnp.eye(dim)] * num_particles)}
-    lmbda_schedule = np.logspace(-5, 0, num_tempering_steps)
     kwargs_for_default_mcmc_kernel = {}
+    extra_parameters = {}
+    params_proposal = {}
     target_ESS = 0.5
 
     config = {'num_particles': num_particles, 'num_tempering_steps': num_tempering_steps,
               'num_mcmc_steps': num_mcmc_steps,
-              'params_proposal': None,
+              'params_proposal': params_proposal,
               'kwargs_for_default_mcmc_kernel': kwargs_for_default_mcmc_kernel,
-              'lmbda_schedule': lmbda_schedule,
+              'lmbda_schedule': None,
               'target_ESS': target_ESS,
               'initial_parameter_value': initial_parameter_value,
               'kernel_id': 'gaussian_238_empirical_proposal',
+              'extra_parameters': extra_parameters,
+              'SMC': 'TemperedSMC',
+              'description': 'SONAR',
               'file': os.path.basename(__file__)}
 
-    my_smc = TemperedSMC_MCMC(logprior_fn, loglikelihood_fn, dim,
-                              build_kernel_and_mcmc_parameter_update_fn=gaussian_238_empirical_proposal(),
-                              kwargs=kwargs_for_default_mcmc_kernel)
+    my_smc = getattr(SMC, config['SMC'])
+    my_proposal = getattr(proposals, config['kernel_id'])
+    my_smc = my_smc(logprior_fn, loglikelihood_fn, dim,
+                    my_proposal(*config['params_proposal']),
+                    kwargs=kwargs_for_default_mcmc_kernel)
 
 
     @jax.vmap
     def wrapped_smc(key):
         init_particles = particle_initialisation_logexp(key, num_particles, dim)
         return my_smc.adaptative_schedule_tempered_smc(key, init_particles, initial_parameter_value, num_mcmc_steps,
-                                                       target_ESS, num_tempering_steps)
+                                                       config['target_ESS'], num_tempering_steps, extra_parameters)
 
 
     res, chain = wrapped_smc(keys)
-    save(chain, f"{os.path.basename(__file__)}_SONAR_G238_{num_tempering_steps}_{num_particles}_{num_mcmc_steps}",
+    save(chain,
+         f"{os.path.basename(__file__)}_{config['SMC']}_{config['kernel_id']}_{config['description']}_{num_tempering_steps}_{num_particles}_{num_mcmc_steps}",
          config, output_path=default_title())
-    plot(chain, f"{os.path.basename(__file__)}_SONAR_G238_{num_tempering_steps}_{num_particles}_{num_mcmc_steps}")
+    plot(chain,
+         f"{os.path.basename(__file__)}_{config['SMC']}_{config['kernel_id']}_{config['description']}_{num_tempering_steps}_{num_particles}_{num_mcmc_steps}")

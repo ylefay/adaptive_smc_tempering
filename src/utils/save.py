@@ -2,11 +2,10 @@ import os
 import pickle
 from datetime import datetime
 
-import jax
-import jax.numpy as jnp
 import matplotlib.pyplot as plt
 
 from src.utils.stats import *
+
 
 def default_title():
     now = datetime.now()
@@ -36,10 +35,6 @@ def save(chain, title, config, output_path=""):
 def plot(chain, title):
     paths = chain[0][0][0][0][:, -1]
     N_chains = len(paths)
-    plt.semilogy(chain[1].update_info.acceptance_rate.mean(axis=-1).mean(axis=-1).T)
-    plt.title("Acceptance rate, log scale")
-    plt.xlabel("Tempering step")
-    plt.savefig(f"{title}_acceptance_rate_logy.png")
     plt.clf()
     plt.plot(chain[1].update_info.acceptance_rate.mean(axis=-1).mean(axis=-1).T)
     plt.title("Acceptance rate")
@@ -71,7 +66,7 @@ def plot(chain, title):
     plt.savefig(f"{title}_esjd_all_chains.png")
     plt.clf()
     logZ, _ = logZ_logW(chain)
-    plt.plot(logZ[:,-1])
+    plt.plot(logZ[:, -1])
     plt.title("Log Z")
     plt.xlabel("Tempering step")
     plt.savefig(f"{title}_logZ_over_chains.png")

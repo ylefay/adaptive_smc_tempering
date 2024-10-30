@@ -6,11 +6,12 @@ import jax.numpy as jnp
 from blackjax.smc import inner_kernel_tuning
 from blackjax.smc import tempered
 from blackjax.smc.resampling import multinomial
-
+from blackjax.smc.waste_free import update_waste_free
 from src.proposals import mcmc_proposal
 
+from functools import partial
 
-class TemperedSMC_MCMC():
+class TemperedSMC():
 
     def __init__(self, logprior_fn: Callable, loglikelihood_fn: Callable, dim: int,
                  build_kernel_and_mcmc_parameter_update_fn: mcmc_proposal, **kwargs):
@@ -24,9 +25,11 @@ class TemperedSMC_MCMC():
 
     def adaptative_schedule_tempered_smc(self, key: jax.Array, init_particles: jnp.ndarray,
                                          initial_parameter_value: Dict,
-                                         num_mcmc_steps: int, target_ess: float, num_tempering_steps: int):
+                                         num_mcmc_steps: int, target_ess: float, num_tempering_steps: int,
+                                         extra_parameters: Dict):
         alg_smc = blackjax.adaptive_tempered_smc
-        extra_parameters = {'target_ess': target_ess}
+        extra_parameters_update = {'target_ess': target_ess}
+        extra_parameters.update(extra_parameters_update)
 
         def mcmc_init_fn(position, logdensity_fn):
             return blackjax.mcmc.random_walk.init(position=position, logdensity_fn=logdensity_fn)
@@ -54,12 +57,14 @@ class TemperedSMC_MCMC():
         return result, chain
 
     def fixed_schedule_tempered_smc(self, key: jax.Array, init_particles: jnp.ndarray, initial_parameter_value: Dict,
-                                    num_mcmc_steps: int, lmbda_schedule: jnp.ndarray):
+                                    num_mcmc_steps: int, lmbda_schedule: jnp.ndarray,
+                                    extra_parameters: Dict):
         def mcmc_init_fn(position, logdensity_fn):
             return blackjax.mcmc.random_walk.init(position=position, logdensity_fn=logdensity_fn)
 
         alg_smc = blackjax.tempered_smc
-        extra_parameters = {}
+        extra_parameters_update = {}
+        extra_parameters.update(extra_parameters_update)
 
         kernel = inner_kernel_tuning.build_kernel(
             alg_smc,
@@ -82,3 +87,30 @@ class TemperedSMC_MCMC():
 
         (_, result), chain = jax.lax.scan(body_fn, (0, init_state), lmbda_schedule)
         return result, chain
+
+
+class WasteFreeTemperedSMC(TemperedSMC):
+    def __init__(self, logprior_fn: Callable, loglikelihood_fn: Callable, dim: int,
+                 build_kernel_and_mcmc_parameter_update_fn: mcmc_proposal, **kwargs):
+        super().__init__(logprior_fn, loglikelihood_fn, dim, build_kernel_and_mcmc_parameter_update_fn,
+                         **kwargs)
+
+    def adaptative_schedule_tempered_smc(self, key: jax.Array, init_particles: jnp.ndarray,
+                                         initial_parameter_value: Dict, num_mcmc_steps: int, target_ess: float,
+                                         num_tempering_steps: int, extra_parameters: Dict):
+        p = num_mcmc_steps + 1
+        num_resampled = int(init_particles[0].shape[0] / p)
+        extra_parameters_update = {'update_strategy': partial(update_waste_free, p=p, num_resampled=num_resampled)}
+        extra_parameters.update(extra_parameters_update)
+
+        return super().adaptative_schedule_tempered_smc(key, init_particles, initial_parameter_value, None, target_ess,
+                                                        num_tempering_steps, extra_parameters)
+
+    def fixed_schedule_tempered_smc(self, key: jax.Array, init_particles: jnp.ndarray, initial_parameter_value: Dict,
+                                    num_mcmc_steps: int, lmbda_schedule: jnp.ndarray, extra_parameters):
+        p = num_mcmc_steps + 1
+        num_resampled = int(init_particles[0].shape[0] / p)
+        extra_parameters_update = {'update_strategy': partial(update_waste_free, p=p, num_resampled=num_resampled)}
+        extra_parameters.update(extra_parameters_update)
+        return super().fixed_schedule_tempered_smc(key, init_particles, initial_parameter_value, None, lmbda_schedule,
+                                                   extra_parameters)
