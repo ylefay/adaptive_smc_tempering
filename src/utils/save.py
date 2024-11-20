@@ -4,8 +4,7 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 
-from src.utils.stats import *
-
+import src.utils.stats as stats
 
 def default_title():
     now = datetime.now()
@@ -23,8 +22,8 @@ def save(chain, title, config, output_path=""):
     to_save = {'title': title, 'config': config,
                'acceptance_rate': chain[1].update_info.acceptance_rate.mean(axis=-1).mean(axis=-1).T,
                'acceptance_ratio': chain[1].update_info.acceptance_rate,
-               'esjd': esjd(chain),
-               'logZ_logW': logZ_logW(chain),
+               'esjd': stats.esjd(chain),
+               'logZ_logW': stats.logZ_logW(chain),
                'lmbda': chain[0][0].lmbda,
                'paths': chain[0][0][0][0]}
 
@@ -58,14 +57,14 @@ def plot(chain, title):
     plt.title("Temperature")
     plt.savefig(f"{title}_lmbda_all_chains.png")
     plt.clf()
-    esjds = esjd(chain)
+    esjds = stats.esjd(chain)
     for idx in range(N_chains):
         plt.plot(esjds[idx])
     plt.xlabel("Tempering step")
     plt.title("ESJD")
     plt.savefig(f"{title}_esjd_all_chains.png")
     plt.clf()
-    logZ, _ = logZ_logW(chain)
+    logZ, _ = stats.logZ_logW(chain)
     plt.plot(logZ[:, -1])
     plt.title("Log Z")
     plt.xlabel("Tempering step")

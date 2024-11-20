@@ -25,7 +25,7 @@ if __name__ == "__main__":
     N_chains = 4
     num_particles = 1000
     num_tempering_steps = 25
-    num_mcmc_steps = 1
+    num_mcmc_steps = 10
 
     keys = jax.random.split(OP_key, N_chains)
 

@@ -21,6 +21,6 @@ def esjd(chain):
     """acceptance_rate = chain[1].update_info.acceptance_rate
     proposals = chain[1].update_info.proposal.position[0]"""
     particles = chain[0].sampler_state.particles[0]
-    dists = jnp.linalg.norm(particles[:, 1:, ...] - particles[:, :-1, ...], axis=-1)
+    dists = jnp.linalg.norm(particles[:, 1:, ...] - particles[:, :-1, ...], axis=-1) ** 2
     ESJDs = dists.mean(axis=-1)
     return ESJDs

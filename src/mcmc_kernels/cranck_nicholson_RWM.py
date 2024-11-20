@@ -2,6 +2,11 @@ import jax.numpy as jnp
 from blackjax.mcmc.random_walk import generate_gaussian_noise
 from blackjax.mcmc.random_walk import init, build_additive_step
 
+__all__ = [
+    "mcmc_parameter_update_fn",
+    "build_kernel"
+]
+
 
 def mcmc_parameter_update_fn(SMCState_var, SMCInfo_var):
     particles = SMCState_var[0][0]
@@ -20,14 +25,12 @@ def build_kernel(delta, C):
 
     def kernel(rng_key, state, logdensity_fn, lmbda, cov_particles):
         def propose(rng_key, position):
-            # jax.debug.print('{lmbda}', lmbda=lmbda)
             x = position[0]
             gamma = 2.38 ** 2 / x.shape[0]
             S = cov_particles * gamma
             P = (delta * (delta + 4)) / (2 + delta) ** 2 * C
             PropChol = jnp.linalg.cholesky(
                 jnp.linalg.inv(jnp.linalg.inv(S) * lmbda + (1 - lmbda) * jnp.linalg.inv(P)))  # *lmbda *(1-lmbda)
-            # jax.debug.print('{PropChol}', PropChol=PropChol)
             return generate_gaussian_noise(rng_key, position=position,
                                            mu=(1 - lmbda) ** 0.5 * (2 / (2 + delta) * x - x),
                                            sigma=PropChol)

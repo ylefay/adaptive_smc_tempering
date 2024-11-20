@@ -2,6 +2,11 @@ import jax.numpy as jnp
 from blackjax.mcmc.random_walk import generate_gaussian_noise
 from blackjax.mcmc.random_walk import init, build_additive_step
 
+__all__ = [
+    "mcmc_parameter_update_fn",
+    "build_kernel"
+]
+
 
 def mcmc_parameter_update_fn(_, __):
     return {}
