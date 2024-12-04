@@ -8,9 +8,9 @@ from blackjax.smc import tempered
 from blackjax.smc.resampling import multinomial
 from blackjax.smc.waste_free import update_waste_free
 
-from src.SMC import inner_kernel_tuning
-from src.proposals import mcmc_proposal
-from src.utils.array_manipulations import repeat, temperedsmcstate_to_array
+import inner_kernel_tuning
+from proposals import mcmc_proposal
+from utils.array_manipulations import repeat, temperedsmcstate_to_array
 
 __all__ = [
     "TemperedSMC",

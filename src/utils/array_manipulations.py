@@ -1,13 +1,10 @@
-from typing import Dict, Tuple, Union
+from typing import Dict
 
 import jax.numpy as jnp
-from blackjax.mcmc.random_walk import RWInfo, RWState
+from blackjax.mcmc.random_walk import RWState
 from blackjax.smc import tempered
-from blackjax.smc.base import SMCInfo
 from blackjax.smc.inner_kernel_tuning import StateWithParameterOverride
 from jax.typing import ArrayLike
-
-from src.SMC.online_waste_free.mcmc.random_walk import RWInfo as RWInfoWithProposedState
 
 
 def temperedsmcstate_to_array(state: tempered.TemperedSMCState) -> jnp.ndarray:
@@ -41,11 +38,6 @@ def take_first_of_extra_parameters(extra_parameters: Dict) -> Dict:
     for k, v in extra_parameters.items():
         extra_parameters_copy[k] = v[0, ...]
     return extra_parameters_copy
-
-def from_RWinfo_to_array(_info: Union[RWInfo, RWInfoWithProposedState]) -> jnp.ndarray:
-    proposal_as_array = RWState_to_array(_info.proposal)
-    proposed_states_as_array = RWState_to_array(_info.proposed_states)
-    return jnp.array([proposal_as_array, proposed_states_as_array])
 
 
 def repeat(a: ArrayLike, n: int) -> ArrayLike:

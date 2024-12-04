@@ -1,8 +1,8 @@
 import jax.random
 
-from src_from_scratch.utils import save
-from src_from_scratch.problems.my_logistic_problem_sonar import *
-from src_from_scratch.smc import GenericAdaptiveWasteFreeTemperingSMC
+from utils import save
+from problems.my_logistic_problem_sonar import *
+from smc import GenericAdaptiveWasteFreeTemperingSMC
 from datetime import datetime
 import os
 

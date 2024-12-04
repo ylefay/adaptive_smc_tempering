@@ -1,9 +1,9 @@
 from typing import Callable, NamedTuple
 
-import src.mcmc_kernels.cranck_nicholson as cranck_nicholson
-import src.mcmc_kernels.cranck_nicholson_RWM as cranck_nicholson_RWM
-import src.mcmc_kernels.gaussian_238_empirical as gaussian_238_empirical
-import src.mcmc_kernels.gaussian_238_empirical_geometric as gaussian_238_empirical_geometric
+import mcmc_kernels.cranck_nicholson as cranck_nicholson
+import mcmc_kernels.cranck_nicholson_RWM as cranck_nicholson_RWM
+import mcmc_kernels.gaussian_238_empirical as gaussian_238_empirical
+import mcmc_kernels.gaussian_238_empirical_geometric as gaussian_238_empirical_geometric
 
 __all__ = [
     "mcmc_proposal",

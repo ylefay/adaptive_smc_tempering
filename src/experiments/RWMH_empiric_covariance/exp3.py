@@ -3,11 +3,11 @@ from datetime import datetime
 
 import numpy as np
 
-import src.SMCTempering as SMC
-import src.proposals as proposals
-from src.experiments.utils import particle_initialisation_logexp
-from src.problems.my_logistic_problem_sonar import *
-from src.utils.save import plot, save
+import SMC.SMCTempering as SMC
+import SMC.proposals as proposals
+from experiments.utils import particle_initialisation_logexp
+from problems.my_logistic_problem_sonar import *
+from utils.save import plot, save
 
 
 def default_title():
