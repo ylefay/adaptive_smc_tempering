@@ -1,11 +1,16 @@
 from typing import Callable, Tuple
 
 import jax.random
+import jax.scipy.optimize as opt
 from blackjax.smc.resampling import multinomial
 from jax import numpy as jnp
 from jax.typing import ArrayLike
 
 PRNGKey = jax.Array
+
+
+def ess(weights):
+    return weights.shape[-1] / jnp.sum(weights ** 2, axis=-1)
 
 
 class GenericAdaptiveWasteFreeTemperingSMC:
@@ -116,7 +121,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 _particles = _particles.at[0].set(particle)
 
                 def inside_inside_body_fn(p, carry):
-                    key, proposed_particles_across_p, particles_across_p, log_g, d, log_q = carry
+                    key, proposed_particles_across_p, particles_across_p, log_g, d, log_q, acceptance_bool_across_p, = carry
                     particle = particles_across_p.at[p - 1].get()
                     subkey = jax.random.fold_in(key, p)
                     _, key = jax.random.split(key)
@@ -145,21 +150,32 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
                     particles_across_p = particles_across_p.at[p].set(new_particle)
                     proposed_particles_across_p = proposed_particles_across_p.at[p].set(new_proposed_particle)
-                    return key, proposed_particles_across_p, particles_across_p, log_g, d, log_q
+                    acceptance_bool_across_p = acceptance_bool_across_p.at[p].set(accept_MH_boolean)
+                    return key, proposed_particles_across_p, particles_across_p, log_g, d, log_q, acceptance_bool_across_p
 
-                _, _proposed_particles, _particles, log_g, d, log_q = jax.lax.fori_loop(1, num_mcmc_steps + 1,
-                                                                                        inside_inside_body_fn,
-                                                                                        (
-                                                                                            key, _proposed_particles,
-                                                                                            _particles,
-                                                                                            jnp.zeros(num_mcmc_steps),
-                                                                                            jnp.zeros(num_mcmc_steps),
-                                                                                            jnp.zeros(num_mcmc_steps)))
-                return _particles, _proposed_particles, log_g, d, log_q
+                _, _proposed_particles, _particles, log_g, d, log_q, _acceptance_bools = jax.lax.fori_loop(1,
+                                                                                                           num_mcmc_steps + 1,
+                                                                                                           inside_inside_body_fn,
+                                                                                                           (
+                                                                                                               key,
+                                                                                                               _proposed_particles,
+                                                                                                               _particles,
+                                                                                                               jnp.zeros(
+                                                                                                                   num_mcmc_steps),
+                                                                                                               jnp.zeros(
+                                                                                                                   num_mcmc_steps),
+                                                                                                               jnp.zeros(
+                                                                                                                   num_mcmc_steps),
+                                                                                                               jnp.zeros(
+                                                                                                                   num_mcmc_steps,
+                                                                                                                   dtype=int))
+                                                                                                           )
+                return _particles, _proposed_particles, log_g, d, log_q, _acceptance_bools
 
             keys = jax.random.split(subkey, num_parallel_chain)
-            new_particles, new_proposed_particles, new_log_g, new_d, new_log_q = inside_body_fn(keys,
-                                                                                                resampled_particles)
+            new_particles, new_proposed_particles, new_log_g, new_d, new_log_q, new_acceptance_bools = inside_body_fn(
+                keys,
+                resampled_particles)
 
             particles = particles.at[i].set(new_particles)
             new_log_weights = jax.vmap(self.log_weights_fn(diff_tempering_sequence.at[i].get()))(
@@ -168,10 +184,10 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             new_log_weights = new_log_weights - jax.scipy.special.logsumexp(new_log_weights)
             log_weights = log_weights.at[i].set(new_log_weights)
             new_weights = jnp.exp(new_log_weights)
-            new_g = jnp.exp(new_log_g)
 
             @jax.jit
             def m_estimate_of_esjd(param):
+                """jax.debug.print("{param}", param=param)"""
                 _new_particles = new_particles.at[:, 1:, :].get().reshape((num_particles - num_parallel_chain, *shape))
                 _new_proposed_particles = new_proposed_particles.at[:, 1:, :].get().reshape(
                     (num_particles - num_parallel_chain, *shape))
@@ -180,16 +196,23 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 one_term_log_proposal = log_proposal_fn(
                     _new_particles, _new_proposed_particles
                 )
+
                 diff_log_proposal = log_proposal_fn(
                     _new_proposed_particles, _new_particles
                 ) - one_term_log_proposal
-                ratio_proposal = jnp.exp(diff_log_proposal).reshape((num_parallel_chain, num_mcmc_steps))
-                to_sum = (new_weights.at[:, 1:].get() * new_d * jax.lax.max(1., new_g * ratio_proposal)).reshape(
+                ratio_proposal = jnp.exp(diff_log_proposal + new_log_g).reshape((num_parallel_chain, num_mcmc_steps))
+
+                """jax.debug.print("{ratio}", ratio=((jax.lax.min(1., new_g * ratio_proposal)).reshape(
+                    -1) * jnp.exp(
+                    one_term_log_proposal - new_log_q.reshape(-1))).mean())"""
+                to_sum = (new_weights.at[:, 1:].get() * new_d * jax.lax.min(1., ratio_proposal)).reshape(
                     -1) * jnp.exp(
                     one_term_log_proposal - new_log_q.reshape(-1))
-                return -jnp.sum(to_sum)
+                return -jnp.sum(to_sum) / (num_parallel_chain * num_mcmc_steps)
 
-            # new_rwmh_proposal_parameter = opt.minimize(m_estimate_of_esjd, rwmh_proposal_parameters.at[i].get(), method="BFGS").x
+            """new_rwmh_proposal_parameter = opt.minimize(m_estimate_of_esjd, rwmh_proposal_parameters.at[i].get(),
+                                                       method="BFGS").x"""
+            """jax.debug.print("{test}", test=jax.vmap(m_estimate_of_esjd)(jnp.linspace(0.8, 0.99, 10)))"""
 
             new_rwmh_proposal_parameter = initial_rwmh_proposal_parameter  # need to implement a minimization procedure
             rwmh_proposal_parameters = rwmh_proposal_parameters.at[i + 1].set(new_rwmh_proposal_parameter)

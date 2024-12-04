@@ -6,6 +6,8 @@ from smc import GenericAdaptiveWasteFreeTemperingSMC
 from datetime import datetime
 import os
 
+jax.config.update("jax_enable_x64", True)
+
 logbase_density_fn = logprior_fn
 length_of_the_tempering_sequence = 50
 my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
@@ -40,6 +42,19 @@ def build_gaussian_rwmh_cov_proposal(_, particles, i):
 
     return gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler
 
+def build_gaussian_rwmh_cov_proposal_gamma(gamma, particles, i):
+    dim = particles.shape[-1]
+    particles = particles.reshape(particles.shape[0], -1, particles.shape[-1])
+    C = jax.lax.select(i == 0, jnp.eye(dim), gamma ** 2 / dim * jnp.cov(particles.at[i - 1].get(), rowvar=False))
+
+    def gaussian_rwmh_cov_log_proposal(x, y):
+        return jax.scipy.stats.multivariate_normal.logpdf(y, x, C)
+
+    def gaussian_rwmh_sampler(key, x):
+        return jax.random.multivariate_normal(key, x, C)
+
+    return gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler
+
 def default_title():
     now = datetime.now()
 
@@ -49,19 +64,18 @@ def default_title():
 
 if __name__ == "__main__":
     OP_key = jax.random.PRNGKey(0)
-    """smc = GenericAdaptiveWasteFreeTemperingSMC(logprior_fn, base_measure_sampler, loglikelihood_fn,
-                                               build_autoregressive_gaussian_rwmh_log_proposal,
-                                               build_autoregressive_gaussian_rwmh_sampler)"""
     smc = GenericAdaptiveWasteFreeTemperingSMC(logprior_fn, base_measure_sampler, loglikelihood_fn,
                                                build_gaussian_rwmh_cov_proposal)
+    smc = GenericAdaptiveWasteFreeTemperingSMC(logprior_fn, base_measure_sampler, loglikelihood_fn,
+                                               build_gaussian_rwmh_cov_proposal_gamma)
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, 10000, 10, jnp.array([1.]), my_tempering_sequence)
-    """smc = GenericAdaptiveWasteFreeTemperingSMC(logprior_fn, base_measure_sampler, loglikelihood_fn,
-                                               build_autoregressive_gaussian_rwmh_proposal)"""
+        return smc.sample(key, 1000, 10, jnp.array([2.38]), my_tempering_sequence)
+
     n_chains = 2
     keys = jax.random.split(OP_key, n_chains)
-    res = wrapper_smc(keys)
+    with jax.disable_jit(True):
+        res = wrapper_smc(keys)
     save(res, default_title())
 
 
