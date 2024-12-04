@@ -9,7 +9,7 @@ from blackjax.smc import tempered
 from blackjax.smc.resampling import multinomial
 from blackjax.smc.waste_free import update_waste_free
 
-from proposals import mcmc_proposal
+from SMC.proposals import mcmc_proposal
 
 __all__ = [
     "TemperedSMC",

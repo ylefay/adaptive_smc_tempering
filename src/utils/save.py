@@ -4,7 +4,7 @@ from datetime import datetime
 
 import matplotlib.pyplot as plt
 
-import stats
+import utils.stats as stats
 
 def default_title():
     now = datetime.now()

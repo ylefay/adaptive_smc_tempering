@@ -1,8 +1,8 @@
 import jax
 import jax.numpy as jnp
 
-import src.mcmc_kernels.gaussian_238_empirical
-from src.utils.array_manipulations import temperedsmcstate_to_array
+import mcmc_kernels.gaussian_238_empirical as gaussian_238_empirical
+from utils.array_manipulations import temperedsmcstate_to_array
 
 __all__ = [
     "get_mcmc_parameter_update_fn",
@@ -33,4 +33,4 @@ def get_mcmc_parameter_update_fn(decay_rate: float, period_max: int):
     return mcmc_parameter_update_fn
 
 
-build_mcmc_kernel = src.mcmc_kernels.gaussian_238_empirical.build_mcmc_kernel
+build_mcmc_kernel = gaussian_238_empirical.build_mcmc_kernel
