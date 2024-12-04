@@ -3,7 +3,7 @@ from datetime import datetime
 
 import numpy as np
 
-import src.SMC.SMCTempering as SMC
+import src.SMCTempering as SMC
 import src.proposals as proposals
 from src.experiments.utils import particle_initialisation_logexp
 from src.problems.my_logistic_problem_sonar import *
@@ -23,9 +23,9 @@ if __name__ == "__main__":
     OP_key = jax.random.PRNGKey(0)
 
     N_chains = 2
-    num_particles = 1000
+    num_particles = 10000
     num_tempering_steps = 25
-    num_mcmc_steps = 1
+    num_mcmc_steps = 9
 
     keys = jax.random.split(OP_key, N_chains)
 
@@ -45,7 +45,7 @@ if __name__ == "__main__":
               'initial_parameter_value': initial_parameter_value,
               'kernel_id': 'gaussian_238_empirical_proposal',
               'extra_parameters': extra_parameters,
-              'SMC': 'TemperedSMC',
+              'SMC': 'WasteFreeTemperedSMC',
               'description': 'SONAR',
               'file': os.path.basename(__file__)}
 

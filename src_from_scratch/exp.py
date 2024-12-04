@@ -1,0 +1,67 @@
+import jax.random
+
+from src_from_scratch.utils import save
+from src_from_scratch.problems.my_logistic_problem_sonar import *
+from src_from_scratch.smc import GenericAdaptiveWasteFreeTemperingSMC
+from datetime import datetime
+import os
+
+logbase_density_fn = logprior_fn
+length_of_the_tempering_sequence = 50
+my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
+
+@jax.vmap
+def base_measure_sampler(key):
+    return jax.random.multivariate_normal(key, jnp.zeros(dim), jnp.eye(dim))
+
+
+def build_autoregressive_gaussian_rwmh_proposal(rho, _, __):
+    C = jnp.eye(dim)
+
+    def gaussian_rwmh_log_proposal(x, y):
+        return jax.scipy.stats.multivariate_normal.logpdf(y, rho * x, (1 - rho ** 2) * C)
+
+    def gaussian_rwmh_sampler(key, x):
+        return jax.random.multivariate_normal(key, rho * x, (1 - rho ** 2) * C)
+
+    return gaussian_rwmh_log_proposal, gaussian_rwmh_sampler
+
+
+def build_gaussian_rwmh_cov_proposal(_, particles, i):
+    dim = particles.shape[-1]
+    particles = particles.reshape(particles.shape[0], -1, particles.shape[-1])
+    C = jax.lax.select(i == 0, jnp.eye(dim), 2.38 ** 2 / dim * jnp.cov(particles.at[i - 1].get(), rowvar=False))
+
+    def gaussian_rwmh_cov_log_proposal(x, y):
+        return jax.scipy.stats.multivariate_normal.logpdf(y, x, C)
+
+    def gaussian_rwmh_sampler(key, x):
+        return jax.random.multivariate_normal(key, x, C)
+
+    return gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler
+
+def default_title():
+    now = datetime.now()
+
+    output_path = f"{os.path.basename(__file__)}_{now.strftime("%m%D%H%M%S").replace("/", "")}.pkl"
+    return output_path
+
+
+if __name__ == "__main__":
+    OP_key = jax.random.PRNGKey(0)
+    """smc = GenericAdaptiveWasteFreeTemperingSMC(logprior_fn, base_measure_sampler, loglikelihood_fn,
+                                               build_autoregressive_gaussian_rwmh_log_proposal,
+                                               build_autoregressive_gaussian_rwmh_sampler)"""
+    smc = GenericAdaptiveWasteFreeTemperingSMC(logprior_fn, base_measure_sampler, loglikelihood_fn,
+                                               build_gaussian_rwmh_cov_proposal)
+    @jax.vmap
+    def wrapper_smc(key):
+        return smc.sample(key, 10000, 10, jnp.array([1.]), my_tempering_sequence)
+    """smc = GenericAdaptiveWasteFreeTemperingSMC(logprior_fn, base_measure_sampler, loglikelihood_fn,
+                                               build_autoregressive_gaussian_rwmh_proposal)"""
+    n_chains = 2
+    keys = jax.random.split(OP_key, n_chains)
+    res = wrapper_smc(keys)
+    save(res, default_title())
+
+

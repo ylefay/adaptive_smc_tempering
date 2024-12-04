@@ -3,7 +3,7 @@ from datetime import datetime
 
 import numpy as np
 
-import src.SMC.SMCTemperingPreviousStates as SMC
+import src.SMCTemperingPreviousStates as SMC
 import src.proposals as proposals
 from src.experiments.utils import particle_initialisation_logexp
 from src.problems.my_logistic_problem_sonar import *
