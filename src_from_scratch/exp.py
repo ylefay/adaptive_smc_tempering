@@ -9,7 +9,7 @@ import os
 jax.config.update("jax_enable_x64", True)
 
 logbase_density_fn = logprior_fn
-length_of_the_tempering_sequence = 50
+length_of_the_tempering_sequence = 5
 my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
 @jax.vmap
@@ -70,11 +70,11 @@ if __name__ == "__main__":
                                                build_gaussian_rwmh_cov_proposal_gamma)
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, 1000, 10, jnp.array([2.38]), my_tempering_sequence)
+        return smc.sample(key, 2000, 100, jnp.array([2.38]), my_tempering_sequence)
 
     n_chains = 2
     keys = jax.random.split(OP_key, n_chains)
-    with jax.disable_jit(True):
+    with jax.disable_jit(False):
         res = wrapper_smc(keys)
     save(res, default_title())
 

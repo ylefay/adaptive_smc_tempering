@@ -1,12 +1,27 @@
 from typing import Callable, Tuple
 
 import jax.random
-import jax.scipy.optimize as opt
 from blackjax.smc.resampling import multinomial
-from jax import numpy as jnp
+from jax import numpy as jnp, Array
 from jax.typing import ArrayLike
 
 PRNGKey = jax.Array
+
+
+def accept_reject_MH_step(key: PRNGKey, log_density_for_proposed, log_density_for_current,
+                          log_proposal_for_proposed, log_proposal_for_current) -> Array:
+    logU = -jax.random.exponential(key)
+    log_mh_ratio = jax.lax.min(0.,
+                               log_density_for_proposed - log_density_for_current + log_proposal_for_proposed - log_proposal_for_current)
+    return logU <= log_mh_ratio
+
+
+def normalize_log_weights(log_weights: ArrayLike) -> ArrayLike:
+    return log_weights - jax.scipy.special.logsumexp(log_weights)
+
+
+def sq_distance(x: ArrayLike, y: ArrayLike) -> ArrayLike:
+    return jnp.sum(jnp.square(x - y), axis=-1)
 
 
 def ess(weights):
@@ -21,7 +36,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
     def __init__(self, logbase_density_fn: Callable[[ArrayLike], ArrayLike],
                  base_measure_sampler: Callable[[PRNGKey], ArrayLike],
                  log_likelihood_fn: Callable[[ArrayLike], ArrayLike],
-                 build_RWMH_proposal: Callable[
+                 build_rwmh_proposal: Callable[
                      [ArrayLike, ArrayLike, int], Tuple[Callable[[ArrayLike, ArrayLike], ArrayLike],
                      Callable[[PRNGKey, ArrayLike], ArrayLike]]]
                  ) -> None:
@@ -36,7 +51,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             return _log_weights_fn
 
         self.log_weights_fn = log_weights_fn
-        self.build_RWMH_proposal = build_RWMH_proposal
+        self.build_rwmh_proposal = build_rwmh_proposal
 
     def sample(self, key: PRNGKey, num_parallel_chain: int, num_mcmc_steps: int,
                initial_rwmh_proposal_parameter: ArrayLike, tempering_sequence: ArrayLike) -> Tuple[
@@ -55,18 +70,10 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             Initial parameter for the first RWMH proposal
         Returns
         -------
-        A JAX array of shape (T, num_parallel_chain, num_mcmc_steps + 1) containing the sampled particles, with T the number of iterations given by the length of logweights_fn
+        A JAX array of shape (T + 1, num_parallel_chain, num_mcmc_steps + 1) containing the sampled particles, with T the number of iterations given by the length of logweights_fn
         """
         diff_tempering_sequence = jnp.diff(tempering_sequence)
-        diff_tempering_sequence = jnp.insert(diff_tempering_sequence, 0, jnp.array([0.]))
         iteration = len(diff_tempering_sequence)
-
-        def accept_reject_MH_step(key: PRNGKey, log_density_for_proposed, log_density_for_current,
-                                  log_proposal_for_proposed, log_proposal_for_current) -> bool:
-            logU = -jax.random.exponential(key)
-            log_mh_ratio = jax.lax.min(0.,
-                                       log_density_for_proposed - log_density_for_current + log_proposal_for_proposed - log_proposal_for_current)
-            return logU <= log_mh_ratio
 
         num_particles = num_parallel_chain * (num_mcmc_steps + 1)
 
@@ -77,27 +84,28 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         particles = jnp.zeros((iteration, num_parallel_chain, num_mcmc_steps + 1, *shape))
         particles = particles.at[0].set(init_particles.reshape((num_parallel_chain, num_mcmc_steps + 1, *shape)))
 
-        rwmh_proposal_parameters = jnp.zeros((iteration, *initial_rwmh_proposal_parameter.shape))
+        rwmh_proposal_parameters = jnp.zeros((iteration + 1, *initial_rwmh_proposal_parameter.shape))
         rwmh_proposal_parameters = rwmh_proposal_parameters.at[0].set(initial_rwmh_proposal_parameter)
 
         subkey = jax.random.fold_in(key, 0)
         subkeys = jax.random.split(subkey, num_particles)
 
-        log_proposal, proposal_sampler = self.build_RWMH_proposal(initial_rwmh_proposal_parameter, particles, 0)
-
+        log_proposal, proposal_sampler = self.build_rwmh_proposal(initial_rwmh_proposal_parameter, particles, 0)
         init_proposed_particles = jax.vmap(proposal_sampler, in_axes=(0, 0))(subkeys, init_particles)
-        proposed_particles = jnp.zeros((iteration - 1, num_parallel_chain, num_mcmc_steps, *shape))
 
-        init_log_weights = jax.vmap(self.logbase_density_fn)(init_particles)
-        init_log_weights = init_log_weights - jax.scipy.special.logsumexp(init_log_weights)
+        log_g0_fn = jax.vmap(self.log_weights_fn(diff_tempering_sequence.at[0].get()))
+        vmapped_logbase_density_fn = jax.vmap(self.logbase_density_fn)
+
+        init_log_weights = log_g0_fn(init_particles)
+        init_log_weights = normalize_log_weights(init_log_weights)
         init_log_weights = init_log_weights.reshape((num_parallel_chain, num_mcmc_steps + 1))
 
         log_weights = jnp.zeros((iteration, num_parallel_chain, num_mcmc_steps + 1))
         log_weights = log_weights.at[0].set(init_log_weights)
 
-        log_g = jax.vmap(self.logbase_density_fn)(init_proposed_particles) - jax.vmap(self.logbase_density_fn)(
-            init_particles)
-        d = jnp.sum(jnp.square(init_proposed_particles - init_particles), axis=-1)
+        log_g = log_g0_fn(init_proposed_particles) - log_g0_fn(init_particles) + vmapped_logbase_density_fn(
+            init_proposed_particles) - vmapped_logbase_density_fn(init_particles)
+        d = sq_distance(init_proposed_particles, init_particles)
 
         new_rwmh_proposal_parameter = initial_rwmh_proposal_parameter  # need to implement a minization procedure
         rwmh_proposal_parameters = rwmh_proposal_parameters.at[1].set(new_rwmh_proposal_parameter)
@@ -119,25 +127,27 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 _proposed_particles = _proposed_particles.at[0].set(particle)
                 _particles = jnp.zeros((num_mcmc_steps + 1, *shape))
                 _particles = _particles.at[0].set(particle)
+                log_gi_fn = self.log_weights_fn(diff_tempering_sequence.at[i].get())
 
                 def inside_inside_body_fn(p, carry):
                     key, proposed_particles_across_p, particles_across_p, log_g, d, log_q, acceptance_bool_across_p, = carry
                     particle = particles_across_p.at[p - 1].get()
                     subkey = jax.random.fold_in(key, p)
                     _, key = jax.random.split(key)
-                    log_proposal, proposal_sampler = self.build_RWMH_proposal(rwmh_proposal_parameters.at[i].get(),
+                    log_proposal, proposal_sampler = self.build_rwmh_proposal(rwmh_proposal_parameters.at[i].get(),
                                                                               particles, i)
                     new_proposed_particle = proposal_sampler(subkey, particle)  # to fix
                     proposed_particles_across_p = proposed_particles_across_p.at[p].set(new_proposed_particle)
-                    new_log_g = self.log_weights_fn(diff_tempering_sequence.at[i].get())(
-                        new_proposed_particle) - self.log_weights_fn(diff_tempering_sequence.at[i].get())(particle)
-                    new_d = jnp.sum(jnp.square(particle - new_proposed_particle), axis=-1)
+                    new_log_g = log_gi_fn(new_proposed_particle) - log_gi_fn(particle)
+                    new_d = sq_distance(particle, new_proposed_particle)
                     log_g = log_g.at[p - 1].set(new_log_g)
                     d = d.at[p - 1].set(new_d)
                     new_log_q = log_proposal(particle, new_proposed_particle)  # to fix
                     log_q = log_q.at[p - 1].set(new_log_q)
-                    log_current_tgt_density_particle = self.log_weights_fn(tempering_sequence.at[i].get())(particle)
-                    log_current_tgt_density_new_proposed_particle = self.log_weights_fn(tempering_sequence.at[i].get())(
+                    log_current_tgt_density_particle = self.log_weights_fn(tempering_sequence.at[i - 1].get())(
+                        particle) + self.logbase_density_fn(particle)
+                    log_current_tgt_density_new_proposed_particle = self.log_weights_fn(
+                        tempering_sequence.at[i - 1].get())(new_proposed_particle) + self.logbase_density_fn(
                         new_proposed_particle)
 
                     accept_MH_boolean = accept_reject_MH_step(key,
@@ -178,12 +188,12 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 resampled_particles)
 
             particles = particles.at[i].set(new_particles)
-            new_log_weights = jax.vmap(self.log_weights_fn(diff_tempering_sequence.at[i].get()))(
-                new_particles.reshape(num_particles, *shape)).reshape(
+            log_gi_fn = jax.vmap(self.log_weights_fn(diff_tempering_sequence.at[i].get()))
+            new_log_weights = log_gi_fn(new_particles.reshape(num_particles, *shape)).reshape(
                 (num_parallel_chain, num_mcmc_steps + 1))  # to fix
-            new_log_weights = new_log_weights - jax.scipy.special.logsumexp(new_log_weights)
+            new_log_weights = normalize_log_weights(new_log_weights)
             log_weights = log_weights.at[i].set(new_log_weights)
-            new_weights = jnp.exp(new_log_weights)
+            truncated_weights = jnp.exp(normalize_log_weights(new_log_weights.at[:, 1:].get()))
 
             @jax.jit
             def m_estimate_of_esjd(param):
@@ -191,34 +201,33 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 _new_particles = new_particles.at[:, 1:, :].get().reshape((num_particles - num_parallel_chain, *shape))
                 _new_proposed_particles = new_proposed_particles.at[:, 1:, :].get().reshape(
                     (num_particles - num_parallel_chain, *shape))
-                _log_proposal_fn, _ = self.build_RWMH_proposal(param, particles, i)
+                _log_proposal_fn, _ = self.build_rwmh_proposal(param, particles, i)
                 log_proposal_fn = jax.vmap(_log_proposal_fn)  # to fix
-                one_term_log_proposal = log_proposal_fn(
-                    _new_particles, _new_proposed_particles
-                )
+                log_proposal_from_particles_to_proposed_partices = log_proposal_fn(_new_particles,
+                                                                                   _new_proposed_particles)
 
-                diff_log_proposal = log_proposal_fn(
-                    _new_proposed_particles, _new_particles
-                ) - one_term_log_proposal
-                ratio_proposal = jnp.exp(diff_log_proposal + new_log_g).reshape((num_parallel_chain, num_mcmc_steps))
+                diff_log_proposal = log_proposal_fn(_new_proposed_particles,
+                                                    _new_particles) - log_proposal_from_particles_to_proposed_partices
+                log_ratio_proposal = diff_log_proposal.reshape((num_parallel_chain, num_mcmc_steps)) + new_log_g
 
-                """jax.debug.print("{ratio}", ratio=((jax.lax.min(1., new_g * ratio_proposal)).reshape(
-                    -1) * jnp.exp(
-                    one_term_log_proposal - new_log_q.reshape(-1))).mean())"""
-                to_sum = (new_weights.at[:, 1:].get() * new_d * jax.lax.min(1., ratio_proposal)).reshape(
-                    -1) * jnp.exp(
-                    one_term_log_proposal - new_log_q.reshape(-1))
+                """Computing the importance sampling weights with self normalized IS"""
+                importance_sampling_log_weight_from_proposal_to_new_proposal = log_proposal_from_particles_to_proposed_partices.reshape(
+                    (num_parallel_chain, num_mcmc_steps)) - new_log_q
+                importance_sampling_log_weight_from_proposal_to_new_proposal = normalize_log_weights(
+                    importance_sampling_log_weight_from_proposal_to_new_proposal)
+
+                to_sum = truncated_weights * new_d * \
+                         jnp.exp(jax.lax.min(0.,
+                                             log_ratio_proposal) + importance_sampling_log_weight_from_proposal_to_new_proposal)
                 return -jnp.sum(to_sum) / (num_parallel_chain * num_mcmc_steps)
 
-            """new_rwmh_proposal_parameter = opt.minimize(m_estimate_of_esjd, rwmh_proposal_parameters.at[i].get(),
-                                                       method="BFGS").x"""
-            """jax.debug.print("{test}", test=jax.vmap(m_estimate_of_esjd)(jnp.linspace(0.8, 0.99, 10)))"""
-
+            jax.debug.print("{test}", test=jax.vmap(m_estimate_of_esjd)(jnp.linspace(2.38, 2.39, 10)))
+            m_estimate_of_esjd(jnp.ones(1, ) * 0.05)
             new_rwmh_proposal_parameter = initial_rwmh_proposal_parameter  # need to implement a minimization procedure
             rwmh_proposal_parameters = rwmh_proposal_parameters.at[i + 1].set(new_rwmh_proposal_parameter)
 
             return particles, log_weights, rwmh_proposal_parameters
 
-        particles, log_weights, rwmh_proposal_parameters = jax.lax.fori_loop(1, iteration, body_fn, (
+        particles, log_weights, rwmh_proposal_parameters = jax.lax.fori_loop(1, iteration + 1, body_fn, (
             particles, log_weights, rwmh_proposal_parameters))
         return particles, log_weights, rwmh_proposal_parameters
