@@ -31,3 +31,16 @@ def build_gaussian_rwmh_cov_proposal_gamma(gamma, particles, i):
         return jax.random.multivariate_normal(key, x, C)
 
     return gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler
+
+
+def build_autoregressive_gaussian_rwmh_proposal(rho, _, __):
+    dim = _.shape[-1]
+    C = jnp.eye(dim)
+
+    def gaussian_rwmh_log_proposal(x, y):
+        return jax.scipy.stats.multivariate_normal.logpdf(y, rho * x, (1 - rho ** 2) * C)
+
+    def gaussian_rwmh_sampler(key, x):
+        return jax.random.multivariate_normal(key, rho * x, (1 - rho ** 2) * C)
+
+    return gaussian_rwmh_log_proposal, gaussian_rwmh_sampler

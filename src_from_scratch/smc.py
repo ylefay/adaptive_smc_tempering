@@ -71,6 +71,8 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         """
         diff_tempering_sequence = jnp.diff(tempering_sequence)
         iteration = len(diff_tempering_sequence)
+        diff_tempering_sequence = jnp.insert(diff_tempering_sequence, 0, 0.)
+
         P = num_mcmc_steps + 1
         num_particles = num_parallel_chain * P
 
@@ -100,8 +102,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         log_weights = jnp.zeros((iteration, num_parallel_chain, P))
         log_weights = log_weights.at[0].set(init_log_weights)
 
-        log_g_1 = log_G0_fn(init_proposed_particles) - log_G0_fn(init_particles) + vmapped_logbase_density_fn(
-            init_proposed_particles) - vmapped_logbase_density_fn(init_particles)
+        log_g_1 = log_G0_fn(init_proposed_particles) - log_G0_fn(init_particles) + vmapped_logbase_density_fn(init_proposed_particles) - vmapped_logbase_density_fn(init_particles)
         d_1 = sq_distance(init_proposed_particles, init_particles)
 
         if self.optimisation:

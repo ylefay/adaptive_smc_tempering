@@ -2,13 +2,14 @@ import os
 from datetime import datetime
 
 import numpy as np
-
+import jax
+import jax.numpy as jnp
 import SMC.SMCTempering as SMC
 import SMC.proposals as proposals
 from experiments.utils import particle_initialisation_logexp
-from problems.my_logistic_problem_sonar import *
+#from problems.my_logistic_problem_sonar import *
 from utils.save import plot, save
-
+from problems.artificial_logistic import create_problem
 
 def default_title():
     now = datetime.now()
@@ -19,13 +20,18 @@ def default_title():
 
 if __name__ == "__main__":
     now = datetime.now()
+    dim = 2
+    C = jax.random.multivariate_normal(jax.random.PRNGKey(0), jnp.zeros(dim), jnp.eye(dim), shape=(dim,))
+    mu = jax.random.multivariate_normal(jax.random.PRNGKey(0), jnp.ones(dim), jnp.eye(dim))
+    loglikelihood_fn, logprior_fn = create_problem(jax.random.PRNGKey(0), mu, C @ C.T / dim, 1000)
+    logbase_density_fn = logprior_fn
 
     OP_key = jax.random.PRNGKey(0)
 
     N_chains = 2
-    num_particles = 10000
+    num_particles = 1000
     num_tempering_steps = 25
-    num_mcmc_steps = 9
+    num_mcmc_steps = 3
 
     keys = jax.random.split(OP_key, N_chains)
 
