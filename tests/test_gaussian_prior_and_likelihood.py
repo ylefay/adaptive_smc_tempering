@@ -3,9 +3,9 @@ import jax
 import jax.numpy as jnp
 import jax.random
 
-from src.problems.gaussian import create_problem
-from src.proposals import build_gaussian_rwmh_cov_proposal_gamma
-from src.smc import GenericAdaptiveWasteFreeTemperingSMC
+from adaptative_smc.problems.gaussian import create_problem
+from adaptative_smc.proposals import build_gaussian_rwmh_cov_proposal_gamma
+from adaptative_smc.smc import GenericAdaptiveWasteFreeTemperingSMC
 
 jax.config.update("jax_enable_x64", True)
 

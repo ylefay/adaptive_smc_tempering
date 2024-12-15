@@ -11,7 +11,7 @@ except Exception as e:
     long_description = ""
 
 setuptools.setup(
-    name="adaptative_smc_scratch",
+    name="adaptative_smc",
     author="Yvann Le Fay",
     description="SMC tempering.",
     long_description=long_description,
