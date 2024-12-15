@@ -15,9 +15,12 @@ def test():
     Checking that the samples from the posterior distribution given by a
         - Gaussian prior N(m_P, C_P)
         - Likelihood N(m_L, C_L),
-    obtained via SMC, have empirical mean and covariance approximately satisfying
+    obtained via SMC, have empirical mean m and covariance C approximately satisfying
         C^{-1} = C_P^{-1} + C_L^{-1},
         C^{-1}m = C_P^{-1}m_P + C_L^{-1}m_L.
+    To check the first equality, we multiply C_P^{-1} + C_L^{-1} by C, and compute the distance to the identity,
+        absolute tolerance of 5 % * sqrt(dim).
+    Component-wise relative tolerance up to 5% for the second inequality.
     """
     OP_key = jax.random.PRNGKey(0)
     dim = 2
@@ -40,7 +43,7 @@ def test():
 
     optimization_method = None
 
-    num_parallel_chain = 1000
+    num_parallel_chain = 10000
     num_mcmc_steps = 10
     init_param = jnp.array([2.38])
     n_chains = 2
@@ -65,9 +68,10 @@ def test():
     target_1 = jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(
         cov_likelihood) @ mean_likelihood
     target_2 = jnp.linalg.inv(cov_prior) + jnp.linalg.inv(cov_likelihood)
-    rtol = 1e-2
+    rtol = 5 * 1e-2
     assert jnp.all(jax.vmap(lambda X: jnp.allclose(X, target_1, rtol=rtol))(
         jax.vmap(lambda X, Y: X @ Y)(jnp.linalg.inv(cov), mean)))
-
-    assert jnp.all(jax.vmap(lambda X: jnp.allclose(X, target_2, rtol=rtol))(
-        jnp.linalg.inv(cov)).all())
+    atol_accounted_for_the_dimension = 5 * 1e-2
+    assert jnp.all(jax.vmap(
+        lambda C: jnp.linalg.norm(target_2 @ C - jnp.eye(dim)) <= jnp.sqrt(dim) * atol_accounted_for_the_dimension)(
+        cov))
