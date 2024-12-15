@@ -80,7 +80,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         subkeys = jax.random.split(subkey, num_particles)
         init_particles = self.base_measure_sampler(subkeys)
         shape = init_particles.shape[1:]
-        particles = jnp.zeros((iteration, num_parallel_chain, P, *shape))
+        particles = jnp.zeros((iteration + 1, num_parallel_chain, P, *shape))
         particles = particles.at[0].set(init_particles.reshape((num_parallel_chain, P, *shape)))
 
         rwmh_proposal_parameters = jnp.zeros((iteration + 1, *initial_rwmh_proposal_parameter.shape))
@@ -99,7 +99,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         init_log_weights = normalize_log_weights(log_G0_init_particles)
         init_log_weights = init_log_weights.reshape((num_parallel_chain, P))
 
-        log_weights = jnp.zeros((iteration, num_parallel_chain, P))
+        log_weights = jnp.zeros((iteration + 1, num_parallel_chain, P))
         log_weights = log_weights.at[0].set(init_log_weights)
 
         log_g_1 = log_G0_fn(init_proposed_particles) - log_G0_fn(init_particles) + vmapped_logbase_density_fn(init_proposed_particles) - vmapped_logbase_density_fn(init_particles)
@@ -243,7 +243,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             else:
                 new_rwmh_proposal_parameter = initial_rwmh_proposal_parameter  # need to implement a minimization procedure
 
-            acceptance_bools = acceptance_bools.at[i].set(new_acceptance_bools)
+            acceptance_bools = acceptance_bools.at[i-1].set(new_acceptance_bools)
 
             # The next lines are only useful for saving the IS weights
             _new_particles = new_particles.at[:, 1:, :].get().reshape(
@@ -265,7 +265,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
         acceptance_bools = jnp.zeros((iteration, num_parallel_chain, num_mcmc_steps), dtype=int)
         important_sampling_log_weights_from_proposal_to_new_proposal = jnp.zeros(
-            (iteration - 1, num_parallel_chain, num_mcmc_steps))
+            (iteration, num_parallel_chain, num_mcmc_steps))
         particles, log_weights, rwmh_proposal_parameters, acceptance_bools, important_sampling_log_weights_from_proposal_to_new_proposal = jax.lax.fori_loop(
             1, iteration + 1,
             body_fn, (

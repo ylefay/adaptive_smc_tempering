@@ -35,16 +35,15 @@ def test():
     def logbase_density_fn(x):
         return jax.scipy.stats.multivariate_normal.logpdf(x, mean=mean_prior, cov=cov_prior)
 
-    length_of_the_tempering_sequence = 1000
+    length_of_the_tempering_sequence = 100
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
-    optimization_method_str = "None"
     optimization_method = None
 
-    num_parallel_chain = 5000
+    num_parallel_chain = 1000
     num_mcmc_steps = 10
     init_param = jnp.array([2.38])
-    n_chains = 4
+    n_chains = 2
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                build_gaussian_rwmh_cov_proposal_gamma, optimization_method)
@@ -54,17 +53,21 @@ def test():
         return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence)
 
     keys = jax.random.split(OP_key, n_chains)
-    with jax.default_device(jax.devices("cpu")[0]):
-        res = wrapper_smc(keys)
+    with jax.disable_jit(False):
+        with jax.default_device(jax.devices("cpu")[0]):
+            res = wrapper_smc(keys)
 
     n_particles = res[0].shape[2] * res[0].shape[3]
     cov = jax.vmap(lambda X: jnp.cov(X, rowvar=False))(
         res[0][:, -1].reshape((*res[0][:, -1].shape[:1], n_particles, res[0].shape[-1])))
     mean = res[0][:, -1].mean(axis=[1, 2])
 
-    rtol = 5 * 1e-2
-    jax.vmap(lambda X: jnp.allclose(X, jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(
-        cov_likelihood) @ mean_likelihood, rtol=rtol))(jax.vmap(lambda X, Y: X@Y)(jnp.linalg.inv(cov), mean)).all()
+    target_1 = jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(
+        cov_likelihood) @ mean_likelihood
+    target_2 = jnp.linalg.inv(cov_prior) + jnp.linalg.inv(cov_likelihood)
+    rtol = 1e-2
+    assert jnp.all(jax.vmap(lambda X: jnp.allclose(X, target_1, rtol=rtol))(
+        jax.vmap(lambda X, Y: X @ Y)(jnp.linalg.inv(cov), mean)))
 
-    jax.vmap(lambda X: jnp.allclose(X, jnp.linalg.inv(cov_prior) + jnp.linalg.inv(cov_likelihood), rtol=rtol))(
-        jnp.linalg.inv(cov)).all()
+    assert jnp.all(jax.vmap(lambda X: jnp.allclose(X, target_2, rtol=rtol))(
+        jnp.linalg.inv(cov)).all())
