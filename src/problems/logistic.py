@@ -38,10 +38,6 @@ def get_dataset(flip=True, dataset="Sonar"):
     return data
 
 
-def logprior_fn(x):
-    return jax.scipy.stats.norm.logpdf(x, loc=jnp.zeros(dim), scale=jnp.ones(dim))
-
-
 if __name__ == "__main__":
     flipped_predictors = get_dataset()
     N, dim = flipped_predictors.shape

@@ -3,9 +3,9 @@ import jax
 import jax.numpy as jnp
 import jax.random
 
-from src_from_scratch.problems.gaussian import create_problem
-from src_from_scratch.proposals import build_gaussian_rwmh_cov_proposal_gamma
-from src_from_scratch.smc import GenericAdaptiveWasteFreeTemperingSMC
+from src.problems.gaussian import create_problem
+from src.proposals import build_gaussian_rwmh_cov_proposal_gamma
+from src.smc import GenericAdaptiveWasteFreeTemperingSMC
 
 jax.config.update("jax_enable_x64", True)
 
@@ -41,10 +41,10 @@ def test():
     optimization_method_str = "None"
     optimization_method = None
 
-    num_parallel_chain = 15000
+    num_parallel_chain = 5000
     num_mcmc_steps = 10
     init_param = jnp.array([2.38])
-    n_chains = 1
+    n_chains = 4
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                build_gaussian_rwmh_cov_proposal_gamma, optimization_method)
