@@ -1,0 +1,143 @@
+\input{contents/fk_generic}
+
+
+\section{Objective}
+Let $g : X\times X \to \bbR$ be some function, and for any $t\geq 0$, let
+\begin{equation}
+    \begin{split}
+    \label{eq:criteria}
+    E(t)&\coloneq \bbE_{X_t\sim \pi_t(\dd x), Y_{t+1}\sim M_{t+1}(X_t, \dd y)}[g(X_t, Y_{t+1})]\\
+    &= \bbE_{X_t\sim \pi_t(\dd x)}[\bbE_{Y_{t+1}\sim M_{t+1}(X_t,\dd y)}[g(X_t, Y_{t+1})\mid X_t]]
+    \end{split}
+\end{equation}
+Given $E(t)$ monitors the quality of the proposal $M_{t+1}$, we aim to construct $M_{t+1}$ so to optimize $E(t)$.
+
+
+\section{Adaptive Waste-Free SMC}
+At iteration $1\leq t\leq T$, for the particle $m$ and two consecutive particles with same ancestor $1\leq m \leq M$, $2\leq p\leq P$,
+\begin{equation}
+    \label{eq:current_samples}
+    (\tilde{X}_t^{m, p-1}, \tilde{X}_t^{m, p})
+    \sim \pi_{t-1} \otimes M_t(\tilde{X}_t^{m, p-1}, \dd x_t).
+\end{equation}
+Let $t\geq 1$ and $\hat{\pi}_t\coloneq \sum_{n=1}^{N}\delta_{X_t^n}W_t^n$, $N=MP$, where $(X_t^n)_{1\leq n\leq N}$ are the gathered particles $\tilde{X}_{t}^{m,p}$ for $1\leq p\leq P$, $1\leq m \leq M$, then $\hat{\pi}_t$ is an estimate of $\pi_t$.
+Let $(M^{\theta}_{t+1})_{\theta\in \Theta}$ be a collection of Markov kernels leaving $\pi_t$ invariant and let $E(t,\theta)$ be~\eqref{eq:criteria} with the dependency in $\theta$ made explicit.
+We aim to construct an estimate of $E(t, \theta)$, let it be $\hat{E}(t, \theta)$, using the samples of iteration $t$~\eqref{eq:current_samples} then compute
+\begin{equation}
+    \hat{\theta}_{t+1}^{*} = \textup{argmax}_{\theta\in \Theta} \hat{E}(t, \theta).
+\end{equation}
+We propose, for any $x\in X$, to perform importance sampling from $M_t(x, \dd y)$ to $M_{t+1}^{\theta}(x, \dd y)$ (assuming the density ratio $\dd M_{t+1}^{\theta}(x, y)/\dd M_t(x, y)$ exists) to estimate the inner expectation $\bbE_{Y_{t+1}\sim M_{t+1}^{\theta}(x, \dd y)}$, and to estimate the outer expectation $\bbE_{X_t\sim \pi_t(\dd x)}$ by the empirical reweighted mean over the particles.
+For the inner expectation, for all $x\in X$, $\theta\in \Theta$
+\begin{equation}
+    \bbE_{Y_{t+1}\sim M_{t+1}^{\theta}(x, \dd y)}[g(x, Y_{t+1})] = \bbE_{Y_{t}\sim M_t(x, \dd y)} [g(x, Y_{t})  w_{t}^{\theta}(x, Y_t)],
+\end{equation}
+with $w_{t+1}^{\theta}(x, y) \coloneq \dd M_{t+1}^{\theta}(x, y)/\dd M_t(x, y)$.
+Replacing this expectation by the unbiased estimate obtained with one-sample, and estimating the outer expectation using the reweighted mean over the particles, we obtain the unbiased estimate
+\begin{equation}
+    \hat{E}(t, \theta) \coloneq \frac{1}{N}\sum_{1\leq p\leq P, \\
+    1\leq m\leq M} W_t^{m, p-1}g(\tilde{X}_t^{m, p-1}, \tilde{X}_t^{m, p}) w_{t+1}^{\theta}(\tilde{X}_t^{m,p-1}, \tilde{X}_t^{m,p}).
+\end{equation}
+
+\yvann{we need to do IS from $M_t(x', \dd y)$ with $x'\sim \pi_t$ to $M_{t+1}^{\theta}(x, \dd y)$ with $x\sim \pi_t$}
+To avoid importance sampling issue, we can consider restrictive objectives or penalised objectives to replace~\eqref{eq:unconstrained_objective}, taking into account the effective sample size, the variance of the weights, or replacing $\Theta$ by a neighbourhood centered around $\hat{\theta}_t$.
+\paragraph{MH kernel}
+At time $t\geq 1$, let $Q_t(x, \dd y)$ be some proposal distribution conditionally on $x\in X$.
+The associated kernel is
+\begin{equation}
+    M_t(x, \dd y) = \delta_x (\dd y) \left(\int (1-a_t(x, y))Q_t(x, \dd y)\right) + a_t(x, y)Q_t(x, \dd y),
+\end{equation}
+with $a_t(x, y) = 1\wedge \frac{\pi_{t-1}(y)Q_t(y, x)}{\pi_{t-1}(x)Q_t(x, y)}$ the Metropolis-Hasting ratio.
+While the ratio of MH kernels might be undefined, we can circumvent this issue by using a rao-Blackwellised estimate for $E$.
+Indeed, for any $t\geq 0$, we have
+\begin{equation}
+    \label{eq:esjd_s_specialized}
+    E(t) = \bbE_{X_t\sim \pi_t(\dd x)} \left[\bbE_{\bar{X}_{t+1}\sim Q_{t+1}(X_t, \dd \bar{x})}[a_{t+1}(X_t, \bar{X}_{t+1}) g(X_t, \bar{X}_{t+1})\mid X_t]\right]
+\end{equation}
+using proposals $\bar{X}_{t+1}\sim Q_{t+1}(X_t, \dd \bar{x})$ before the acceptation-rejection procedure.
+For any $t\geq 1$,  $2\leq p \leq P$, $1\leq m\leq M$, let $\bar{X}_t^{m, p} \sim Q_t(\tilde{X}_t^{m,p-1}, \cdot)$ and $\bar{X}_t^{m,1} = X_{t-1}^{A_t^m}$ where $A_t^m\sim \textup{resample}(M, W_{t-1}^{1:N})$ be the proposed particles before acceptation-rejection step at iteration $t$.
+Then an estimate of $E(t, \theta)$ is given by
+\begin{equation}
+    \begin{split}
+        &\hat{E}^{\theta}_t = \frac{1}{M(P-1)}\sum_{2\leq p\leq P, 1\leq m\leq M}^{P}\bar{W}_t^{m,p-1}  \norm{\tilde{X}_t^{m,p-1}-\bar{X}_{t}^{m,p}}^2 a_{t+1}^{\theta}(\tilde{X}_t^{m,p-1}, \bar{X}_{t}^{m,p}) w'_{t+1}^{\theta}(\tilde{X}_t^{m,p-1}, \bar{X}_{t}^{m,p}),\\
+        &w_{t+1}^{\theta,'}(x, y) \coloneq \frac{Q_{t+1}^{\theta}(x, y)}{Q_t(x,y)},\,\, a_{t+1}^{\theta}(x,y) \coloneq 1 \wedge \frac{\pi_t(y)Q_{t+1}^{\theta}(y, x)}{\pi_t(x) Q_{t+1}^{\theta}(x, y)},\,\, \bar{W}_t^{m,p-1}\propto W_{t}^{m, p-1}, \sum_{p=2}^{P}\sum_{m=1}^{M}\bar{W}_t^{m,p-1} = 1.
+    \end{split}
+\end{equation}
+While for calibrating $M_{1}^{\theta}$, i.e., estimating the optimal $\theta_1$, we estimate~\eqref{eq:esjd_s_specialized} using samples from $\nu$
+\begin{equation}
+    \begin{split}
+        &\hat{E}^{\theta}_{0} = \frac{1}{N} \sum_{n=1}^{N} \norm{X_0^n - \bar{X}_1^n}^2 a_1^{\theta}(X_0^n, \bar{X}_1^n),\,\, \bar{X}_1^n \sim Q_1^{\theta}(X_0^n, \dd \bar{x}),\,\, a_{1}^{\theta}(x,y) \coloneq 1 \wedge \frac{\nu(y)Q_{1}^{\theta}(y, x)}{\nu(x) Q_{1}^{\theta}(x, y)}.
+    \end{split}
+\end{equation}
+This is (almost) free to compute since all the involved terms are already computed during the procedure at iteration $t$, except $Q_{t+1}^{\theta}(\bar{X}_t^{m,p}, \tilde{X}_t^{m, p-1})$ and $Q_{t+1}^{\theta}(\tilde{X}_t^{m, p-1}, \bar{X}_t^{m,p})$.
+\begin{algorithm}[!ht]
+    \label{alg:adaptative_waste_free_smc_rwmh}
+    \DontPrintSemicolon
+    \caption{Adaptative Waste Free SMC with MH proposals}
+    \SetKwInOut{Input}{input}
+    \SetKwInOut{Output}{output}
+    \
+
+    \Input{Integers $M, P\geq 1$, $N\gets MP$, a FK model (initial distribution $\nu$, functions $G_t$, parametric MH proposals $(Q_t^{\theta})_{\theta\in \Theta}$), a criterion $g$}
+    \For{$t\gets 0$ \KwTo $T$}{
+        \If{$t=0$}{
+            \For{$n\gets 1$ \KwTo $N$}{
+                $X_0^n\sim \nu(\dd x_0)$\;
+                $\bar{X}_1^n\sim Q_1^{\theta_0}(X_0^n,\dd\bar{x})$\;
+                $g_{1}^n \gets \frac{\nu(\bar{X}_1^n)}{\nu(X_0^n)}$\;
+                $d_{1}^n \gets g(X_0^n, \bar{X}_1^n)$\;
+            }
+            $\theta_1\gets \text{argmax}_{\theta\in \Theta}\sum_{n=1}^{N} d_1^n \times \left(1\wedge g_{1}^n \frac{Q_1^{\theta}(\bar{X}_1^n, X_0^n)}{Q_1^{\theta}(X_0^n, \bar{X}_1^n)}\right)$\;
+            \For{$n\gets 1$ \KwTo $N$}
+            {
+                $w_0^n\gets G_0(X_0^n)$\;
+            }
+            \For{$n\gets 1$ \KwTo $N$}
+            {
+                $W_0^n \gets w_0^n / \sum_{n=1}^{N}w_0^n$\;
+            }
+        }\Else {
+            $A_t^{1:M}\sim \text{resample}(M, W_{t-1}^{1:N})$\;
+            \For{$m\gets 1$ \KwTo $M$}{
+                $\tilde{X_t}^{m, 1}\gets X_{t-1}^{A_{t}^m}$\;
+                \For{$p\gets 2$ \KwTo $P$}{
+                    $\bar{X_t}^{m, p}\sim Q_t^{\theta_t}(\tilde{X}_t^{m, p-1}, \dd x_t)$\;
+                    $g_{t+1}^{m,p}\gets \frac{\pi_t(\bar{X}_t^{m,p})}{\pi_t(\tilde{X}_t^{m, p-1})}$\;
+                    $d_{t+1}^{m,p}\gets g(\tilde{X}_t^{m,p-1},\bar{X}_t^{m,p})$\;
+                    $q_{t+1}^{m,p}\gets Q_t^{\theta_t}(\tilde{X}_t^{m,p-1}, \bar{X}_t^{m,p})$\;
+                    $U\sim \calU[0, 1]$\;
+                    \If{$U< 1 \wedge \frac{\pi_{t-1}(\bar{X_t}^{m, p})\textcolor{green}{Q_t^{\theta_t}(\bar{X_t}^{m, p}, \tilde{X}_t^{m,p-1})}}{\pi_{t-1}(\tilde{X}_t^{m, p-1})\textcolor{green}{q_{t+1}^{m,p}}}$}{
+                        $\tilde{X_t}^{m, p}\gets \bar{X_t}^{m,p}$\;
+                    }\Else {
+                        $\tilde{X_t}^{m, p}\gets \tilde{X_t}^{m, p-1}$\;
+                    }
+                }
+
+            }
+            \For{$n\gets 1$ \KwTo $N$}
+            {
+                $w_t^n\gets G_t(X_t^n)$\;
+            }
+            \For{$n\gets 1$ \KwTo $N$}
+            {
+                $W_t^n \gets w_t^n / \sum_{n=1}^{N}w_t^n$\;
+            }
+            $\theta_{t+1}\gets \text{argmax}_{\theta\in \Theta}\sum_{2\leq p\leq P, 1\leq m\leq M}W_t^{m, p-1} d_{t+1}^{m,p} \left(1 \wedge g_{t+1}^{m,p} \textcolor{red}{\frac{Q_{t+1}^{\theta}(\bar{X}_t^{m, p}, \tilde{X}_t^{m, p-1})}{Q_{t+1}^{\theta}(\tilde{X}_t^{m, p-1}, \bar{X}_t^{m, p})}}\right)\times \frac{\textcolor{red}{Q^{\theta}_{t+1}(\tilde{X}_t^{m,p-1}, \bar{X}_t^{m,p})}}{q_{t+1}^{m,p}}$\;
+        }
+    }
+\end{algorithm}
+
+
+
+\paragraph{RWMH kernel: Autoregressive proposal}
+\label{subsec:ar_proposal}
+Assume $X = \bbR^n$, let $C \succ 0$, $\nu(\dd x)$ some base probability measure on $X$, e.g., $\nu(\dd x) = \calN(0, C)$.
+Let $\Theta = [-1, 1]$, and let for any $t\geq 1$, $x\in X$, $\rho \in \Theta$, $Q_s^{\rho}(x, \dd y) = \calN(\dd y \mid \rho x, (1-\rho^2)C)$.
+At iteration $t\geq 1$, let us denote by $\rho_1, \rho_2, \ldots \rho_{t} \in \Theta$ the sequence of autoregressive parameters for the proposals $Q_1, Q_2, \ldots, Q_{t}$.
+Then for any $t\geq 1$, and any $\rho\in \Theta$
+\begin{equation}
+    \begin{split}
+    w_{t+1}^{\rho,'}(x, y) &= \frac{\calN(\dd y \mid \rho x, (1-\rho^2)C)}{\calN(\dd y\mid \rho_t x, (1-\rho_t^2)C)}\\
+        &= \left(\frac{1-\rho^2}{1-\rho_t^2}\right)^{-n/2} \exp\left(-\frac{1}{2}\left((y-\rho x)^{\top}\left((1-\rho^2)C\right)^{-1}(y-\rho x)-(y-\rho_t x)^{\top}\left((1-\rho_t^2)C\right)^{-1}(y-\rho_t x) \right)\right)
+    \end{split}
+\end{equation}
+

@@ -1,0 +1,60 @@
+\documentclass[11pt]{article}
+
+\usepackage{amsmath,amsmath,amssymb,amsthm}
+\usepackage{xcolor}
+\usepackage{pgfplots}
+\usepackage{pgfplotstable}
+\pgfplotsset{compat=1.18}
+\usepackage{tikz}
+\usepackage{natbib}
+\usepackage{dsfont}
+\usepackage{mathtools}
+\usepackage[titlenumbered,ruled,noend]{algorithm2e}
+\usepackage{stmaryrd}
+\usepackage{relsize}
+\usepackage{subcaption}
+\usetikzlibrary{spy}
+\usepackage{nicematrix}
+\usepackage[legalpaper, margin=1in]{geometry}
+
+\newtheorem{corollary}{Corollary}[section]
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}{Theorem}[section]
+\newtheorem{proposition}{Proposition}[section]
+\newtheorem{remark}{Remark}[section]
+\newtheorem{assumption}{Assumption}
+\newtheorem{lemma}[theorem]{Lemma}
+\newtheorem{refproof}{Proof}
+\newtheorem{example}{Example}[section]
+
+\usepackage[colorlinks,citecolor=blue,urlcolor=blue,filecolor=blue,backref=page]{hyperref}
+\DeclarePairedDelimiter{\norm}{\lVert}{\rVert}
+\DeclarePairedDelimiter{\abs}{\lvert}{\rvert}%
+\DeclarePairedDelimiter{\bignorm}{\left\lVert}{\right\rVert}
+
+\DeclareMathOperator{\vect}{vec}
+\newcommand{\yvann}[1]{\textcolor{red}{Y: #1}}
+
+
+\newcommand{\dd}[0]{\mathrm{d}}
+\newcommand{\bbE}[0]{\mathbb{E}}
+\newcommand{\bbR}[0]{\mathbb{R}}
+\newcommand{\bbV}[0]{\mathbb{V}}
+\newcommand{\bbC}[0]{\mathbb{C}}
+\newcommand{\calL}[0]{\mathcal{L}}
+\newcommand{\calN}[0]{\mathcal{N}}
+\newcommand{\calU}[0]{\mathcal{U}}
+\newcommand{\wtX}[0]{\widetilde{X}}
+
+
+\author{Nicolas Chopin, Matti Vihola, Yvann Le Fay}
+\title{On proposals for SMC}
+\date{\today}
+\begin{document}
+    \maketitle
+    \input{contents/notes.tex}
+    \bibliography{notes}
+    \bibliographystyle{abbrvnat}
+
+
+\end{document}

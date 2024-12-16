@@ -7,8 +7,8 @@ import jax.numpy as jnp
 import jax.random
 
 import optimise
+import proposals
 from problems.gaussian import create_problem
-from proposals import build_gaussian_rwmh_cov_proposal_gamma
 from smc import GenericAdaptiveWasteFreeTemperingSMC
 from utils import save
 
@@ -39,29 +39,33 @@ if __name__ == "__main__":
 
     @jax.vmap
     def base_measure_sampler(key):
-        return jax.random.multivariate_normal(key, jnp.zeros(dim)+20, 5*jnp.eye(dim))
+        return jax.random.multivariate_normal(key, jnp.zeros(dim) + 20, 5 * jnp.eye(dim))
 
 
     def logbase_density_fn(x):
-        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim)+20, cov=5*jnp.eye(dim))
+        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim) + 20, cov=5 * jnp.eye(dim))
 
 
-    optimization_method_str = "optimize_within_a_grid"
-    optimization_method = optimise.make_optimize_within_a_grid([1, 4], [-0.1, 0.1], 5)
+    optimization_method_str = "make_optimize_within_a_grid"
+    params_optimization_method = {"minmax": [1, 4], "interval": [-0.1, 0.1], "n_steps": 20}
 
-    optimization_method_str = "None"
-    optimization_method = None
-
-    num_parallel_chain = 10000
-    num_mcmc_steps = 10
+    num_parallel_chain = 4000
+    num_mcmc_steps = 5
     init_param = jnp.array([2.38])
     n_chains = 2
-    config = {"optimization_method": optimization_method_str, "dim": dim, "tempering_sequence": my_tempering_sequence,
+    config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
+              "proposal": "build_gaussian_rwmh_cov_proposal_gamma",
+              "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains}
+    my_proposal = getattr(proposals, config['proposal'])
+    if config['optimization_method']:
+        optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
+    else:
+        optimization_method = None
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               build_gaussian_rwmh_cov_proposal_gamma, optimization_method)
+                                               my_proposal, optimization_method)
 
 
     @jax.vmap

@@ -110,7 +110,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             def m_estimate_of_esjd(param):
                 _new_particles = init_particles.reshape((num_particles, *shape))
                 _new_proposed_particles = init_proposed_particles.reshape((num_particles, *shape))
-                _log_proposal_fn, _ = self.build_rwmh_proposal(param, particles, 0)
+                _log_proposal_fn, _ = self.build_rwmh_proposal(param, particles, 1)
                 log_proposal_fn = jax.vmap(_log_proposal_fn)
                 log_proposal_from_particles_to_proposed_particles = log_proposal_fn(_new_particles,
                                                                                     _new_proposed_particles)
@@ -118,9 +118,10 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                                                     _new_particles) - log_proposal_from_particles_to_proposed_particles
                 log_ratio = diff_log_proposal + log_g_1
                 to_sum = d_1 * jax.lax.min(1., jnp.exp(log_ratio))
-                return jnp.sum(to_sum) / num_particles
+                #/ num_particles
+                return jnp.sum(to_sum)
 
-            new_rwmh_proposal_parameter = self.optimisation(jax.vmap(m_estimate_of_esjd),
+            new_rwmh_proposal_parameter = self.optimisation(m_estimate_of_esjd,
                                                             initial_rwmh_proposal_parameter)
         else:
             new_rwmh_proposal_parameter = initial_rwmh_proposal_parameter
@@ -236,9 +237,12 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                     to_sum = truncated_weights * new_d * \
                              jnp.exp(jax.lax.min(0.,
                                                  log_ratio) + importance_sampling_log_weight_from_proposal_to_new_proposal)
-                    return jnp.sum(to_sum) / (num_parallel_chain * num_mcmc_steps)
+                    jax.debug.print("{param}:{lr}", param=param, lr=jnp.exp(jax.lax.min(0.,
+                                                 log_ratio)))
+                    # / (num_parallel_chain * num_mcmc_steps)
+                    return jnp.sum(to_sum)
 
-                new_rwmh_proposal_parameter = self.optimisation(jax.vmap(m_estimate_of_esjd),
+                new_rwmh_proposal_parameter = self.optimisation(m_estimate_of_esjd,
                                                                 rwmh_proposal_parameters.at[i].get())
             else:
                 new_rwmh_proposal_parameter = initial_rwmh_proposal_parameter  # need to implement a minimization procedure
