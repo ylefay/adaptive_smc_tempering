@@ -5,9 +5,9 @@
 Let $g : X\times X \to \bbR$ be some function, and for any $t\geq 0$, let
 \begin{equation}
     \begin{split}
-    \label{eq:criteria}
-    E(t)&\coloneq \bbE_{X_t\sim \pi_t(\dd x), Y_{t+1}\sim M_{t+1}(X_t, \dd y)}[g(X_t, Y_{t+1})]\\
-    &= \bbE_{X_t\sim \pi_t(\dd x)}[\bbE_{Y_{t+1}\sim M_{t+1}(X_t,\dd y)}[g(X_t, Y_{t+1})\mid X_t]]
+        \label{eq:criteria}
+        E(t)&\coloneq \bbE_{X_t\sim \pi_t(\dd x), Y_{t+1}\sim M_{t+1}(X_t, \dd y)}[g(X_t, Y_{t+1})]\\
+        &= \bbE_{X_t\sim \pi_t(\dd x)}[\bbE_{Y_{t+1}\sim M_{t+1}(X_t,\dd y)}[g(X_t, Y_{t+1})\mid X_t]]
     \end{split}
 \end{equation}
 Given $E(t)$ monitors the quality of the proposal $M_{t+1}$, we aim to construct $M_{t+1}$ so to optimize $E(t)$.
@@ -40,6 +40,7 @@ Replacing this expectation by the unbiased estimate obtained with one-sample, an
 
 \yvann{we need to do IS from $M_t(x', \dd y)$ with $x'\sim \pi_t$ to $M_{t+1}^{\theta}(x, \dd y)$ with $x\sim \pi_t$}
 To avoid importance sampling issue, we can consider restrictive objectives or penalised objectives to replace~\eqref{eq:unconstrained_objective}, taking into account the effective sample size, the variance of the weights, or replacing $\Theta$ by a neighbourhood centered around $\hat{\theta}_t$.
+
 \paragraph{MH kernel}
 At time $t\geq 1$, let $Q_t(x, \dd y)$ be some proposal distribution conditionally on $x\in X$.
 The associated kernel is
@@ -58,16 +59,17 @@ For any $t\geq 1$,  $2\leq p \leq P$, $1\leq m\leq M$, let $\bar{X}_t^{m, p} \si
 Then an estimate of $E(t, \theta)$ is given by
 \begin{equation}
     \begin{split}
-        &\hat{E}^{\theta}_t = \frac{1}{M(P-1)}\sum_{2\leq p\leq P, 1\leq m\leq M}^{P}\bar{W}_t^{m,p-1}  \norm{\tilde{X}_t^{m,p-1}-\bar{X}_{t}^{m,p}}^2 a_{t+1}^{\theta}(\tilde{X}_t^{m,p-1}, \bar{X}_{t}^{m,p}) w'_{t+1}^{\theta}(\tilde{X}_t^{m,p-1}, \bar{X}_{t}^{m,p}),\\
+        &\hat{E}^{\theta}_t = \frac{1}{M(P-1)}\sum_{2\leq p\leq P, 1\leq m\leq M}^{P}\bar{W}_t^{m,p-1}  \norm{\tilde{X}_t^{m,p-1}-\bar{X}_{t}^{m,p}}^2 a_{t+1}^{\theta}(\tilde{X}_t^{m,p-1}, \bar{X}_{t}^{m,p}) w_{t+1, '}^{\theta}(\tilde{X}_t^{m,p-1}, \bar{X}_{t}^{m,p}),\\
         &w_{t+1}^{\theta,'}(x, y) \coloneq \frac{Q_{t+1}^{\theta}(x, y)}{Q_t(x,y)},\,\, a_{t+1}^{\theta}(x,y) \coloneq 1 \wedge \frac{\pi_t(y)Q_{t+1}^{\theta}(y, x)}{\pi_t(x) Q_{t+1}^{\theta}(x, y)},\,\, \bar{W}_t^{m,p-1}\propto W_{t}^{m, p-1}, \sum_{p=2}^{P}\sum_{m=1}^{M}\bar{W}_t^{m,p-1} = 1.
     \end{split}
 \end{equation}
 While for calibrating $M_{1}^{\theta}$, i.e., estimating the optimal $\theta_1$, we estimate~\eqref{eq:esjd_s_specialized} using samples from $\nu$
 \begin{equation}
     \begin{split}
-        &\hat{E}^{\theta}_{0} = \frac{1}{N} \sum_{n=1}^{N} \norm{X_0^n - \bar{X}_1^n}^2 a_1^{\theta}(X_0^n, \bar{X}_1^n),\,\, \bar{X}_1^n \sim Q_1^{\theta}(X_0^n, \dd \bar{x}),\,\, a_{1}^{\theta}(x,y) \coloneq 1 \wedge \frac{\nu(y)Q_{1}^{\theta}(y, x)}{\nu(x) Q_{1}^{\theta}(x, y)}.
+        &\hat{E}^{\theta}_{0} = \frac{1}{N} \sum_{n=1}^{N} \norm{X_0^n - \bar{X}_1^n}^2 a_1^{\theta}(X_0^n, \bar{X}_1^n),\,\, \bar{X}_1^n \sim Q_1^{\theta_0}(X_0^n, \dd \bar{x}),\,\, a_{1}^{\theta}(x,y) \coloneq 1 \wedge \frac{\nu(y)Q_{1}^{\theta}(y, x)}{\nu(x) Q_{1}^{\theta}(x, y)}.
     \end{split}
 \end{equation}
+In the case where $Q(x, y)=Q(y, x)$, the previous function is constant.
 This is (almost) free to compute since all the involved terms are already computed during the procedure at iteration $t$, except $Q_{t+1}^{\theta}(\bar{X}_t^{m,p}, \tilde{X}_t^{m, p-1})$ and $Q_{t+1}^{\theta}(\tilde{X}_t^{m, p-1}, \bar{X}_t^{m,p})$.
 \begin{algorithm}[!ht]
     \label{alg:adaptative_waste_free_smc_rwmh}
@@ -126,8 +128,6 @@ This is (almost) free to compute since all the involved terms are already comput
     }
 \end{algorithm}
 
-
-
 \paragraph{RWMH kernel: Autoregressive proposal}
 \label{subsec:ar_proposal}
 Assume $X = \bbR^n$, let $C \succ 0$, $\nu(\dd x)$ some base probability measure on $X$, e.g., $\nu(\dd x) = \calN(0, C)$.
@@ -136,7 +136,7 @@ At iteration $t\geq 1$, let us denote by $\rho_1, \rho_2, \ldots \rho_{t} \in \T
 Then for any $t\geq 1$, and any $\rho\in \Theta$
 \begin{equation}
     \begin{split}
-    w_{t+1}^{\rho,'}(x, y) &= \frac{\calN(\dd y \mid \rho x, (1-\rho^2)C)}{\calN(\dd y\mid \rho_t x, (1-\rho_t^2)C)}\\
+        w_{t+1}^{\rho,'}(x, y) &= \frac{\calN(\dd y \mid \rho x, (1-\rho^2)C)}{\calN(\dd y\mid \rho_t x, (1-\rho_t^2)C)}\\
         &= \left(\frac{1-\rho^2}{1-\rho_t^2}\right)^{-n/2} \exp\left(-\frac{1}{2}\left((y-\rho x)^{\top}\left((1-\rho^2)C\right)^{-1}(y-\rho x)-(y-\rho_t x)^{\top}\left((1-\rho_t^2)C\right)^{-1}(y-\rho_t x) \right)\right)
     \end{split}
 \end{equation}

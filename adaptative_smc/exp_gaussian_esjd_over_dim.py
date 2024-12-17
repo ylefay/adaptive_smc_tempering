@@ -22,15 +22,9 @@ def default_title():
     return output_path
 
 
-if __name__ == "__main__":
+def experiment(dim: int):
     OP_key = jax.random.PRNGKey(0)
 
-    """dim = 2
-    C = jax.random.multivariate_normal(jax.random.PRNGKey(0), jnp.zeros(dim), jnp.eye(dim), shape=(dim,))
-    mu = jax.random.multivariate_normal(jax.random.PRNGKey(0), jnp.ones(dim), jnp.eye(dim))
-    loglikelihood_fn, logbase_density_fn = create_problem(jax.random.PRNGKey(0), mu, C @ C.T / dim, 1000)"""
-
-    dim = 5
     loglikelihood_fn = create_problem(dim, scale=jnp.sqrt(0.5))
 
     length_of_the_tempering_sequence = 50
@@ -46,8 +40,8 @@ if __name__ == "__main__":
         return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim) + 20, cov=5 * jnp.eye(dim))
 
 
-    optimization_method_str = "make_newton"
-    params_optimization_method = {"lmbda": 1 / 10, "interval": (0.1, 8.)}
+    optimization_method_str = "make_constant"
+    params_optimization_method = {}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
     num_parallel_chain = 4000
@@ -75,10 +69,15 @@ if __name__ == "__main__":
 
 
     keys = jax.random.split(OP_key, n_chains)
-    with jax.disable_jit(True):
+    with jax.disable_jit(False):
         with jax.default_device(jax.devices("cpu")[0]):
             with jax.debug_nans(False):
                 res = wrapper_smc(keys)
     save(res, config, ['optimization_method', 'dim', 'init_param', 'num_parallel_chain', 'num_mcmc_steps'],
          [length_of_the_tempering_sequence],
          default_title())
+
+if __name__ == "__main__":
+    dims = [1, 2, 3, 4, 5, 10, 20]
+    for d in dims:
+        experiment(d)

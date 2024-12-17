@@ -3,7 +3,7 @@ from typing import Callable, Tuple
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
-from jaxopt import ScipyRootFinding
+
 
 def make_optimize_within_a_grid(minmax: Tuple[float, float], interval: Tuple[float, float], n_steps: int) -> Callable[
     [Callable[[ArrayLike], ArrayLike], ArrayLike], ArrayLike]:
@@ -27,6 +27,7 @@ def make_optimize_within_a_grid(minmax: Tuple[float, float], interval: Tuple[flo
 def make_bisection(minmax, interval, n_iter=100):
     r"""
     Bisection method for derivable one-dimensional function f: \mathbb{R} -> \mathbb{R}.
+    Fixed interval.
     """
     _min, _max = minmax
     ap, bp = interval
@@ -55,7 +56,8 @@ def make_bisection(minmax, interval, n_iter=100):
 
 def make_bisection_2(minmax, interval, n_iter=100):
     r"""
-    Bisection method for derivable one-dimensional function f: \mathbb{R} -> \mathbb{R}.
+    Bisection method for derivable one-dimensional function f: \mathbb{R} \to \mathbb{R}.
+    Interval centered around the previous value
     """
     _min, _max = minmax
     ap, bp = interval
@@ -79,11 +81,20 @@ def make_bisection_2(minmax, interval, n_iter=100):
 
     return bisection_procedure
 
-def make_ScipyRootFinding(lmbda, interval):
+
+def make_newton(lmbda, interval):
+    r"""
+    Newton's method on f', assuming f  : \mathbb{R}\to \mathbb{R}
+    Decreasing step size lmbda/2^iteration, with numerical safety tests.
+    -------
+
+    """
     a, b = interval
+
     def solve(func, x):
         grad_f = jax.grad(func)
         grad_grad_f = jax.grad(lambda x: grad_f(x).at[0].get())
+
         def iter_fun(i, inps):
             x, lmbda = inps
             _grad_f = grad_f(x)
@@ -91,7 +102,16 @@ def make_ScipyRootFinding(lmbda, interval):
             step = _grad_f / ggrad_f * (_grad_f / ggrad_f > 1e-4) * (ggrad_f != 0.)
             proposed_x = x - lmbda * step
             proposed_x = jnp.isnan(x) * x + (1 - jnp.isnan(x)) * proposed_x
-            return proposed_x, lmbda/2
+            return proposed_x, lmbda / 2
+
         x, _ = jax.lax.fori_loop(0, 5, iter_fun, (x, lmbda))
         return jax.lax.max(jax.lax.min(x, b), a)
+
+    return solve
+
+
+def make_constant():
+    def solve(_, x):
+        return x
+
     return solve

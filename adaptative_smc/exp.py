@@ -28,7 +28,7 @@ if __name__ == "__main__":
     dim = 61
     loglikelihood_fn = get_loglikelihood_fn(dim)
 
-    length_of_the_tempering_sequence = 10
+    length_of_the_tempering_sequence = 100
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
 
@@ -41,16 +41,14 @@ if __name__ == "__main__":
         return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim), cov=jnp.eye(dim))
 
 
-    optimization_method_str = "make_optimize_within_a_grid"
+    optimization_method_str = "make_constant"
     params_optimization_method = {"minmax": [1, 4], "interval": [-0.1, 0.1], "n_steps": 20}
-
-    optimization_method_str = None
-    optimization_method = None
+    params_optimization_method = {}
 
     num_parallel_chain = 4000
     num_mcmc_steps = 5
     init_param = jnp.array([2.38])
-    n_chains = 2
+    n_chains = 5
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
               "proposal": "build_gaussian_rwmh_cov_proposal_gamma",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
