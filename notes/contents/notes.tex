@@ -18,12 +18,13 @@ At iteration $1\leq t\leq T$, for the particle $m$ and two consecutive particles
 \begin{equation}
     \label{eq:current_samples}
     (\tilde{X}_t^{m, p-1}, \tilde{X}_t^{m, p})
-    \sim \pi_{t-1} \otimes M_t(\tilde{X}_t^{m, p-1}, \dd x_t).
+    \sim \pi_{t-1}(\dd x_t[p-1]) \otimes M_t(x_t[p-1], \dd x_t[p]) \yvann{why in SMC WF paper, its $\pi_t\otimes M_t$?}.
 \end{equation}
 Let $t\geq 1$ and $\hat{\pi}_t\coloneq \sum_{n=1}^{N}\delta_{X_t^n}W_t^n$, $N=MP$, where $(X_t^n)_{1\leq n\leq N}$ are the gathered particles $\tilde{X}_{t}^{m,p}$ for $1\leq p\leq P$, $1\leq m \leq M$, then $\hat{\pi}_t$ is an estimate of $\pi_t$.
 Let $(M^{\theta}_{t+1})_{\theta\in \Theta}$ be a collection of Markov kernels leaving $\pi_t$ invariant and let $E(t,\theta)$ be~\eqref{eq:criteria} with the dependency in $\theta$ made explicit.
 We aim to construct an estimate of $E(t, \theta)$, let it be $\hat{E}(t, \theta)$, using the samples of iteration $t$~\eqref{eq:current_samples} then compute
 \begin{equation}
+    \label{eq:maximisation_procedure}
     \hat{\theta}_{t+1}^{*} = \textup{argmax}_{\theta\in \Theta} \hat{E}(t, \theta).
 \end{equation}
 We propose, for any $x\in X$, to perform importance sampling from $M_t(x, \dd y)$ to $M_{t+1}^{\theta}(x, \dd y)$ (assuming the density ratio $\dd M_{t+1}^{\theta}(x, y)/\dd M_t(x, y)$ exists) to estimate the inner expectation $\bbE_{Y_{t+1}\sim M_{t+1}^{\theta}(x, \dd y)}$, and to estimate the outer expectation $\bbE_{X_t\sim \pi_t(\dd x)}$ by the empirical reweighted mean over the particles.
@@ -38,8 +39,7 @@ Replacing this expectation by the unbiased estimate obtained with one-sample, an
     1\leq m\leq M} W_t^{m, p-1}g(\tilde{X}_t^{m, p-1}, \tilde{X}_t^{m, p}) w_{t+1}^{\theta}(\tilde{X}_t^{m,p-1}, \tilde{X}_t^{m,p}).
 \end{equation}
 
-\yvann{we need to do IS from $M_t(x', \dd y)$ with $x'\sim \pi_t$ to $M_{t+1}^{\theta}(x, \dd y)$ with $x\sim \pi_t$}
-To avoid importance sampling issue, we can consider restrictive objectives or penalised objectives to replace~\eqref{eq:unconstrained_objective}, taking into account the effective sample size, the variance of the weights, or replacing $\Theta$ by a neighbourhood centered around $\hat{\theta}_t$.
+To avoid importance sampling issue, we can consider restrictive objectives or penalised objectives to replace~\eqref{eq:maximisation_procedure}, taking into account the effective sample size, the variance of the weights, or replacing $\Theta$ by a neighbourhood centered around $\hat{\theta}_t$.
 
 \paragraph{MH kernel}
 At time $t\geq 1$, let $Q_t(x, \dd y)$ be some proposal distribution conditionally on $x\in X$.
@@ -48,7 +48,7 @@ The associated kernel is
     M_t(x, \dd y) = \delta_x (\dd y) \left(\int (1-a_t(x, y))Q_t(x, \dd y)\right) + a_t(x, y)Q_t(x, \dd y),
 \end{equation}
 with $a_t(x, y) = 1\wedge \frac{\pi_{t-1}(y)Q_t(y, x)}{\pi_{t-1}(x)Q_t(x, y)}$ the Metropolis-Hasting ratio.
-While the ratio of MH kernels might be undefined, we can circumvent this issue by using a rao-Blackwellised estimate for $E$.
+While the ratio of MH kernels might be undefined, we can circumvent this issue by using a Rao-Blackwellised estimate for $E$.
 Indeed, for any $t\geq 0$, we have
 \begin{equation}
     \label{eq:esjd_s_specialized}
@@ -59,7 +59,8 @@ For any $t\geq 1$,  $2\leq p \leq P$, $1\leq m\leq M$, let $\bar{X}_t^{m, p} \si
 Then an estimate of $E(t, \theta)$ is given by
 \begin{equation}
     \begin{split}
-        &\hat{E}^{\theta}_t = \frac{1}{M(P-1)}\sum_{2\leq p\leq P, 1\leq m\leq M}^{P}\bar{W}_t^{m,p-1}  \norm{\tilde{X}_t^{m,p-1}-\bar{X}_{t}^{m,p}}^2 a_{t+1}^{\theta}(\tilde{X}_t^{m,p-1}, \bar{X}_{t}^{m,p}) w_{t+1, '}^{\theta}(\tilde{X}_t^{m,p-1}, \bar{X}_{t}^{m,p}),\\
+        \label{eq:esjd_estimate}
+        &\hat{E}^{\theta}_t = \frac{1}{M(P-1)}\sum_{2\leq p\leq P, 1\leq m\leq M}^{P}\bar{W}_t^{m,p-1}  \norm{\tilde{X}_t^{m,p-1}-\bar{X}_{t}^{m,p}}^2 a_{t+1}^{\theta}(\tilde{X}_t^{m,p-1}, \bar{X}_{t}^{m,p}) w_{t+1}^{\theta,'}(\tilde{X}_t^{m,p-1}, \bar{X}_{t}^{m,p}),\\
         &w_{t+1}^{\theta,'}(x, y) \coloneq \frac{Q_{t+1}^{\theta}(x, y)}{Q_t(x,y)},\,\, a_{t+1}^{\theta}(x,y) \coloneq 1 \wedge \frac{\pi_t(y)Q_{t+1}^{\theta}(y, x)}{\pi_t(x) Q_{t+1}^{\theta}(x, y)},\,\, \bar{W}_t^{m,p-1}\propto W_{t}^{m, p-1}, \sum_{p=2}^{P}\sum_{m=1}^{M}\bar{W}_t^{m,p-1} = 1.
     \end{split}
 \end{equation}
@@ -69,8 +70,8 @@ While for calibrating $M_{1}^{\theta}$, i.e., estimating the optimal $\theta_1$,
         &\hat{E}^{\theta}_{0} = \frac{1}{N} \sum_{n=1}^{N} \norm{X_0^n - \bar{X}_1^n}^2 a_1^{\theta}(X_0^n, \bar{X}_1^n),\,\, \bar{X}_1^n \sim Q_1^{\theta_0}(X_0^n, \dd \bar{x}),\,\, a_{1}^{\theta}(x,y) \coloneq 1 \wedge \frac{\nu(y)Q_{1}^{\theta}(y, x)}{\nu(x) Q_{1}^{\theta}(x, y)}.
     \end{split}
 \end{equation}
-In the case where $Q(x, y)=Q(y, x)$, the previous function is constant.
-This is (almost) free to compute since all the involved terms are already computed during the procedure at iteration $t$, except $Q_{t+1}^{\theta}(\bar{X}_t^{m,p}, \tilde{X}_t^{m, p-1})$ and $Q_{t+1}^{\theta}(\tilde{X}_t^{m, p-1}, \bar{X}_t^{m,p})$.
+In the case where $Q(x, y)=Q(y, x)$, the previous function is constant and thus cannot be optimised with respect to $\theta_1$.
+The estimate~\eqref{eq:esjd_estimate} is (almost) free to compute since all the involved terms are already computed during the procedure at iteration $t$, except $Q_{t+1}^{\theta}(\bar{X}_t^{m,p}, \tilde{X}_t^{m, p-1})$ and $Q_{t+1}^{\theta}(\tilde{X}_t^{m, p-1}, \bar{X}_t^{m,p})$.
 \begin{algorithm}[!ht]
     \label{alg:adaptative_waste_free_smc_rwmh}
     \DontPrintSemicolon
@@ -128,9 +129,71 @@ This is (almost) free to compute since all the involved terms are already comput
     }
 \end{algorithm}
 
+\paragraph{Random Walk: optimal scaling}
+Proposals of the form $y=x + l\sqrt{n^{-\gamma}}Z$, where $Z\sim \calN(0, I_n)$.
+Assume $\pi = f^{\otimes n}$,~\citet{robertsgalman97} show that $\gamma=1$, and the optimal asymptotic scaling $l$ satisfies
+\begin{equation}
+    l = 2.38/\sqrt{I}, I = \bbE[ \log(f)'(X)^2],
+\end{equation}
+and yields an acceptance rate of $2\phi(-\sqrt{I}l/2)\approx 0.234$
+\subparagraph{Experiment}
+Let $\Theta = \bbR^{+}$, let $\theta\coloneq l$.
+Let $\pi_0 = \calN(0, I_n)$, and let $L$ be such that $L\pi_0 = \calN(\mu, \sigma^2 I_n)$.
+Fix $T\geq 1$, and let $\pi_t = L^{\gamma_t}\pi_0$ with $\gamma_t = t/T$, for $0\leq t\leq T$.
+We consider the Adaptative RW proposal\yvann{find ref}, at iteration $t\geq 1$,
+\begin{equation}
+    \label{eq:rwmh_adaptative_smc}
+    y \sim \calN(x, l^2/n \hat{\Sigma}_{t-1}),
+\end{equation}
+where $\hat{\Sigma}_{t-1}$ is the estimated covariance matrix of the target distribution $\pi_{t-1}$ \yvann{Should we use $\hat{\Sigma}'_{t-1}=(N-1)^{-1}\sum_{1\leq i\leq N}W_{t-1}(X_{t-1}^{n}-\hat{\mu}_{t-1})^{\top}(X_{t-1}^{n}-\hat{\mu}_{t-1})$, $\hat{\mu}_{t-1} = N^{-1}\sum_{1\leq i\leq N} W_{t-1}^{n}X_{t-1}^n$}, computed using particles at time $(X_{t-1}^{n})$.
+For $t=0$, we set $\hat{\Sigma}_t = \textup{Cov}(\pi_0) = I_n$.
+We consider the ESJD criterion given by $g(x, y) = \norm{x-y}^2$, and the corresponding estimator of~\eqref{eq:criteria} given by~\eqref{eq:esjd_estimate}.
+Since all the intermediary distributions $\pi_t$ are products of identical unidimensional Gaussian distributions, the maximum of the exact ESJD is achieved for the optimal scaling $l=2.38$ in~\eqref{eq:rwmh_adaptative_smc} when $n\to\infty$.
+Indeed, let $\pi_t = \calN(\mu_t, \sigma^2_t I_n)$, then a computation shows that $I_t= 1/\sigma^2_t$, thus $y = x+2.38\sigma_t/\sqrt{n} Z$, with $Z\sim \calN(0, I_n)$ is the optimal proposal.
+Since $\hat{\Sigma}_t\to \sigma_t^2 I_n$, a.s., as $N$ goes to $\infty$ and assuming $\sigma_t\approx \sigma_{t-1}$, the proposal~\eqref{eq:rwmh_adaptative_smc} should be close in law to the optimal proposal when $l=2.38$.
+We aim to estimate the optimal scaling $l$ obtained via maximising~\eqref{eq:esjd_estimate}.
+As $n$ goes to $\infty$ and the number of particles $N=MP$ goes to $\infty$, the optimal scaling $\hat{l}_{t}$ should converge to $2.38$, for all $1\leq t\leq T$.
+More generally, one can replace $\hat{\Sigma}_{t-1}$ in~\eqref{eq:rwmh_adaptative_smc} by
+\begin{equation}
+    \hat{\Sigma}_{t-1} = N^{-1}\sum_{1\leq i\leq N} W_{t-1}^{i} \nabla \log \pi_{t-1}(X_{t-1}^{i}).
+\end{equation}
+\yvann{Can't we directly create an empirical estimate for $\bbE_{\pi_t}[\nabla \log \pi_{t}]$ using samples $(X_{t-1}^{i})$ and IS?
+The previous estimate should be well-behaved but not targeting the right quantity, while
+\begin{equation}
+    \hat{\Sigma}_{t} = N^{-1} \sum_{1\leq i\leq N}W_{t-1}^i G_{t}(X_{t-1}^i)\nabla \log \pi_t(X_{t-1}^i),
+\end{equation}
+has the right target but might be more noisy.
+}
+\paragraph{Metropolis Adjusted Langevin Algorithm}
+Proposals of the form $y=x + l^2n^{-\gamma}\nabla \log\pi(x) /2 + l\sqrt{n^{-\gamma}}Z$, with $Z\sim\calN(0, I_n)$.
+For i.i.d target distributions,~\citet{garethrosenthal98} show that $\gamma=1/3$ and the optimal asymptotic scaling $l$ satisfies
+\begin{equation}
+    2\phi(-Jl^3)\approx 0.574, J^2= \frac{1}{48}\bbE[5\log(f)'''(X)^2 - 3\log(f)''(X)^3].
+\end{equation}
+\subparagraph{Experiment}
+Similarly to the previous example, we consider $\pi_t = \calN(\mu_t, \sigma_t^2 I_n)$.
+A computation shows that $J^{-2}_t = 16\sigma_t^6$. Let $l'$ be such $2\phi(-J_tl^{',3})\approx 0.574$, i.e., $l'\approx 0.825J_t^{-1/3} = 1.310\sigma_t$.
+Thus, we consider the following adaptative MALA proposal, at iteration $t\geq 1$
+\begin{equation}
+    \label{eq:mala_adaptative_smc}
+    y \sim \calN(x + l^2  n^{-1/3} \textup{diag}\hat{\Sigma}_{t-1} \nabla \log\pi_{t}(x)/2, l^2n^{-1/3}\hat{\Sigma}_{t-1}),
+\end{equation}
+where $\hat{\Sigma}_{t-1}$ is the empirical covariance estimate of $\pi_{t-1}$ computed using particles and weights of iteration $t-1$.
+Again as $N\to \infty$, $\hat{\Sigma}_{t-1}$ converges a.s. to $\sigma_{t-1}I_n$.
+Given that $\sigma_{t-1}\approx \sigma_t$, as $n$ goes to $\infty$ and the number of particles goes to $\infty$, the optimal scaling $\hat{l}_{t}$ should be close to $\approx 1.310$, for all $1\leq t\leq T$.
+Again, instead of approximating expectations under $\pi_{t-1}$ of quantities involving $\pi_{t-1}$, we can directly estimate expectations of quantities inolving $\log \pi_{t}$ using samples $(X_{t-1}^{i})$ and IS.
+In the general case where $\pi = f^{\otimes n}$, let $\hat{J^2_t}$ be the unbiased estimate of $J_t^2$ given by
+\begin{equation}
+\hat{J_t^2} = 48^{-1}N^{-1}\sum_{1\leq i\leq N}W_{t-1}^{i}G_{t}(X_{t-1}^{i})\left(5 (\nabla^3 \log \pi_t(X_{t-1}^{i}))^{2} - 3(\nabla^{2} \log \pi_t(X_{t-1}^{i})^{\top})^{3})\right)^2,
+\end{equation}
+where the derivatives are taken component-wise.
+Let $\hat{l}^{'}\coloneq 0.825(\hat{J^2_t})^{-1/3}$, the proposal is then
+\begin{equation}
+    y\sim \calN(x + \hat{l}^{',2} n^{-3} \nabla \log \pi_t(x)/2, \hat{l}^{', 2}n^{-1/3}).
+\end{equation}
 \paragraph{RWMH kernel: Autoregressive proposal}
 \label{subsec:ar_proposal}
-Assume $X = \bbR^n$, let $C \succ 0$, $\nu(\dd x)$ some base probability measure on $X$, e.g., $\nu(\dd x) = \calN(0, C)$.
+Let $C \succ 0$, $\nu(\dd x)$ some base probability measure on $X$, e.g., $\nu(\dd x) = \calN(0, C)$.
 Let $\Theta = [-1, 1]$, and let for any $t\geq 1$, $x\in X$, $\rho \in \Theta$, $Q_s^{\rho}(x, \dd y) = \calN(\dd y \mid \rho x, (1-\rho^2)C)$.
 At iteration $t\geq 1$, let us denote by $\rho_1, \rho_2, \ldots \rho_{t} \in \Theta$ the sequence of autoregressive parameters for the proposals $Q_1, Q_2, \ldots, Q_{t}$.
 Then for any $t\geq 1$, and any $\rho\in \Theta$
@@ -140,4 +203,5 @@ Then for any $t\geq 1$, and any $\rho\in \Theta$
         &= \left(\frac{1-\rho^2}{1-\rho_t^2}\right)^{-n/2} \exp\left(-\frac{1}{2}\left((y-\rho x)^{\top}\left((1-\rho^2)C\right)^{-1}(y-\rho x)-(y-\rho_t x)^{\top}\left((1-\rho_t^2)C\right)^{-1}(y-\rho_t x) \right)\right)
     \end{split}
 \end{equation}
+\yvann{...}
 
