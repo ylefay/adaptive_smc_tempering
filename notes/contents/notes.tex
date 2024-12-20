@@ -18,8 +18,9 @@ At iteration $1\leq t\leq T$, for the particle $m$ and two consecutive particles
 \begin{equation}
     \label{eq:current_samples}
     (\tilde{X}_t^{m, p-1}, \tilde{X}_t^{m, p})
-    \sim \pi_{t-1}(\dd x_t[p-1]) \otimes M_t(x_t[p-1], \dd x_t[p]) \yvann{why in SMC WF paper, its $\pi_t\otimes M_t$?}.
+    \sim \pi_{t-1}(\dd x_t[p-1]) \otimes M_t(x_t[p-1], \dd x_t[p])
 \end{equation}
+\yvann{why in SMC WF paper, its $\pi_t\otimes M_t$?}.
 Let $t\geq 1$ and $\hat{\pi}_t\coloneq \sum_{n=1}^{N}\delta_{X_t^n}W_t^n$, $N=MP$, where $(X_t^n)_{1\leq n\leq N}$ are the gathered particles $\tilde{X}_{t}^{m,p}$ for $1\leq p\leq P$, $1\leq m \leq M$, then $\hat{\pi}_t$ is an estimate of $\pi_t$.
 Let $(M^{\theta}_{t+1})_{\theta\in \Theta}$ be a collection of Markov kernels leaving $\pi_t$ invariant and let $E(t,\theta)$ be~\eqref{eq:criteria} with the dependency in $\theta$ made explicit.
 We aim to construct an estimate of $E(t, \theta)$, let it be $\hat{E}(t, \theta)$, using the samples of iteration $t$~\eqref{eq:current_samples} then compute
@@ -129,6 +130,7 @@ The estimate~\eqref{eq:esjd_estimate} is (almost) free to compute since all the 
     }
 \end{algorithm}
 
+See \cite{garethrosenthal01} for a review of the optimal scaling of MH kernels.
 \paragraph{Random Walk: optimal scaling}
 Proposals of the form $y=x + l\sqrt{n^{-\gamma}}Z$, where $Z\sim \calN(0, I_n)$.
 Assume $\pi = f^{\otimes n}$,~\citet{robertsgalman97} show that $\gamma=1$, and the optimal asymptotic scaling $l$ satisfies
@@ -145,25 +147,20 @@ We consider the Adaptative RW proposal\yvann{find ref}, at iteration $t\geq 1$,
     \label{eq:rwmh_adaptative_smc}
     y \sim \calN(x, l^2/n \hat{\Sigma}_{t-1}),
 \end{equation}
-where $\hat{\Sigma}_{t-1}$ is the estimated covariance matrix of the target distribution $\pi_{t-1}$ \yvann{Should we use $\hat{\Sigma}'_{t-1}=(N-1)^{-1}\sum_{1\leq i\leq N}W_{t-1}(X_{t-1}^{n}-\hat{\mu}_{t-1})^{\top}(X_{t-1}^{n}-\hat{\mu}_{t-1})$, $\hat{\mu}_{t-1} = N^{-1}\sum_{1\leq i\leq N} W_{t-1}^{n}X_{t-1}^n$}, computed using particles at time $(X_{t-1}^{n})$.
-For $t=0$, we set $\hat{\Sigma}_t = \textup{Cov}(\pi_0) = I_n$.
+where $\hat{\Sigma}_{t-1}$ is the estimated covariance matrix of the target distribution $\pi_{t-1}$ given by
+\begin{equation}
+    \hat{\Sigma}'_{t-1}=(N-1)^{-1}\sum_{1\leq i\leq N}W_{t-1}(X_{t-1}^{n}-\hat{\mu}_{t-1})^{\top}(X_{t-1}^{n}-\hat{\mu}_{t-1}), \hat{\mu}_{t-1} = N^{-1}\sum_{1\leq i\leq N} W_{t-1}^{n}X_{t-1}^n,
+\end{equation}
 We consider the ESJD criterion given by $g(x, y) = \norm{x-y}^2$, and the corresponding estimator of~\eqref{eq:criteria} given by~\eqref{eq:esjd_estimate}.
 Since all the intermediary distributions $\pi_t$ are products of identical unidimensional Gaussian distributions, the maximum of the exact ESJD is achieved for the optimal scaling $l=2.38$ in~\eqref{eq:rwmh_adaptative_smc} when $n\to\infty$.
-Indeed, let $\pi_t = \calN(\mu_t, \sigma^2_t I_n)$, then a computation shows that $I_t= 1/\sigma^2_t$, thus $y = x+2.38\sigma_t/\sqrt{n} Z$, with $Z\sim \calN(0, I_n)$ is the optimal proposal.
-Since $\hat{\Sigma}_t\to \sigma_t^2 I_n$, a.s., as $N$ goes to $\infty$ and assuming $\sigma_t\approx \sigma_{t-1}$, the proposal~\eqref{eq:rwmh_adaptative_smc} should be close in law to the optimal proposal when $l=2.38$.
+Indeed, let $\pi_t = \calN(\mu_t, \sigma^2_t I_n)$, then a computation shows that $I_t= 1/\sigma^2_t$, thus $y = x+2.38\sigma_t/\sqrt{n} Z$, with $Z\sim \calN(0, I_n)$ is the optimal proposal at iteration $t+1$ targeting $\pi_t$.
+Since $\hat{\Sigma}_t\to \sigma_t^2 I_n$, a.s., as $N$ goes to $\infty$, the proposal~\eqref{eq:rwmh_adaptative_smc} should be close in law to the optimal proposal when $l=2.38$.
 We aim to estimate the optimal scaling $l$ obtained via maximising~\eqref{eq:esjd_estimate}.
 As $n$ goes to $\infty$ and the number of particles $N=MP$ goes to $\infty$, the optimal scaling $\hat{l}_{t}$ should converge to $2.38$, for all $1\leq t\leq T$.
 More generally, one can replace $\hat{\Sigma}_{t-1}$ in~\eqref{eq:rwmh_adaptative_smc} by
 \begin{equation}
     \hat{\Sigma}_{t-1} = N^{-1}\sum_{1\leq i\leq N} W_{t-1}^{i} \nabla \log \pi_{t-1}(X_{t-1}^{i}).
 \end{equation}
-\yvann{Can't we directly create an empirical estimate for $\bbE_{\pi_t}[\nabla \log \pi_{t}]$ using samples $(X_{t-1}^{i})$ and IS?
-The previous estimate should be well-behaved but not targeting the right quantity, while
-\begin{equation}
-    \hat{\Sigma}_{t} = N^{-1} \sum_{1\leq i\leq N}W_{t-1}^i G_{t}(X_{t-1}^i)\nabla \log \pi_t(X_{t-1}^i),
-\end{equation}
-has the right target but might be more noisy.
-}
 \paragraph{Metropolis Adjusted Langevin Algorithm}
 Proposals of the form $y=x + l^2n^{-\gamma}\nabla \log\pi(x) /2 + l\sqrt{n^{-\gamma}}Z$, with $Z\sim\calN(0, I_n)$.
 For i.i.d target distributions,~\citet{garethrosenthal98} show that $\gamma=1/3$ and the optimal asymptotic scaling $l$ satisfies
@@ -179,12 +176,11 @@ Thus, we consider the following adaptative MALA proposal, at iteration $t\geq 1$
     y \sim \calN(x + l^2  n^{-1/3} \textup{diag}\hat{\Sigma}_{t-1} \nabla \log\pi_{t}(x)/2, l^2n^{-1/3}\hat{\Sigma}_{t-1}),
 \end{equation}
 where $\hat{\Sigma}_{t-1}$ is the empirical covariance estimate of $\pi_{t-1}$ computed using particles and weights of iteration $t-1$.
-Again as $N\to \infty$, $\hat{\Sigma}_{t-1}$ converges a.s. to $\sigma_{t-1}I_n$.
-Given that $\sigma_{t-1}\approx \sigma_t$, as $n$ goes to $\infty$ and the number of particles goes to $\infty$, the optimal scaling $\hat{l}_{t}$ should be close to $\approx 1.310$, for all $1\leq t\leq T$.
+As $N$ goes to $\infty$, the optimal scaling $\hat{l}_{t}$ should be close to $\approx 1.310$, for all $1\leq t\leq T$.
 Again, instead of approximating expectations under $\pi_{t-1}$ of quantities involving $\pi_{t-1}$, we can directly estimate expectations of quantities inolving $\log \pi_{t}$ using samples $(X_{t-1}^{i})$ and IS.
 In the general case where $\pi = f^{\otimes n}$, let $\hat{J^2_t}$ be the unbiased estimate of $J_t^2$ given by
 \begin{equation}
-\hat{J_t^2} = 48^{-1}N^{-1}\sum_{1\leq i\leq N}W_{t-1}^{i}G_{t}(X_{t-1}^{i})\left(5 (\nabla^3 \log \pi_t(X_{t-1}^{i}))^{2} - 3(\nabla^{2} \log \pi_t(X_{t-1}^{i})^{\top})^{3})\right)^2,
+\hat{J_t^2} = 48^{-1}N^{-1}\sum_{1\leq i\leq N}W_{t-1}^{i}(X_{t-1}^{i})\left(5 (\nabla^3 \log \pi_t(X_{t-1}^{i}))^{2} - 3(\nabla^{2} \log \pi_t(X_{t-1}^{i})^{\top})^{3})\right)^2,
 \end{equation}
 where the derivatives are taken component-wise.
 Let $\hat{l}^{'}\coloneq 0.825(\hat{J^2_t})^{-1/3}$, the proposal is then

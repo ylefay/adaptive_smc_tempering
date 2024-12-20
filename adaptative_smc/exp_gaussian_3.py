@@ -25,11 +25,6 @@ def default_title():
 if __name__ == "__main__":
     OP_key = jax.random.PRNGKey(0)
 
-    """dim = 2
-    C = jax.random.multivariate_normal(jax.random.PRNGKey(0), jnp.zeros(dim), jnp.eye(dim), shape=(dim,))
-    mu = jax.random.multivariate_normal(jax.random.PRNGKey(0), jnp.ones(dim), jnp.eye(dim))
-    loglikelihood_fn, logbase_density_fn = create_problem(jax.random.PRNGKey(0), mu, C @ C.T / dim, 1000)"""
-
     dim = 1
     loglikelihood_fn = create_problem(dim, scale=jnp.sqrt(0.5))
 
@@ -71,7 +66,7 @@ if __name__ == "__main__":
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence)
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess=None)
 
 
     keys = jax.random.split(OP_key, n_chains)
