@@ -6,11 +6,12 @@ import jax
 import jax.numpy as jnp
 import jax.random
 
-import optimise
-import proposals
-from problems.gaussian import create_problem
-from smc import GenericAdaptiveWasteFreeTemperingSMC
-from utils import save
+
+from adaptive_smc import optimise
+from adaptive_smc import proposals
+from adaptive_smc.problems.gaussian import create_problem
+from adaptive_smc.smc import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.utils import save
 
 jax.config.update("jax_enable_x64", True)
 

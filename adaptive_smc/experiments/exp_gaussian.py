@@ -6,11 +6,12 @@ import jax
 import jax.numpy as jnp
 import jax.random
 
-import optimise
-import proposals
-from problems.gaussian import create_problem
-from smc import GenericAdaptiveWasteFreeTemperingSMC
-from utils import save
+
+from adaptive_smc import optimise
+from adaptive_smc import proposals
+from adaptive_smc.problems.gaussian import create_problem
+from adaptive_smc.smc import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.utils import save
 
 jax.config.update("jax_enable_x64", True)
 
@@ -30,7 +31,7 @@ if __name__ == "__main__":
     mu = jax.random.multivariate_normal(jax.random.PRNGKey(0), jnp.ones(dim), jnp.eye(dim))
     loglikelihood_fn, logbase_density_fn = create_problem(jax.random.PRNGKey(0), mu, C @ C.T / dim, 1000)"""
 
-    dim = 5
+    dim = 2
     loglikelihood_fn = create_problem(dim, scale=jnp.sqrt(0.5))
 
     length_of_the_tempering_sequence = 50
@@ -45,14 +46,13 @@ if __name__ == "__main__":
         return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim) + 20, cov=5 * jnp.eye(dim))
 
 
-    optimization_method_str = "make_newton"
-    params_optimization_method = {"lmbda": 1 / 10, "interval": (0.1, 8.)}
-    # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
+    optimization_method_str = "make_optimize_within_a_grid"
+    params_optimization_method = {"minmax": [1, 4], "interval": [-0.1, 0.1], "n_steps": 20}
 
     num_parallel_chain = 4000
     num_mcmc_steps = 5
     init_param = jnp.array([2.38])
-    n_chains = 5
+    n_chains = 2
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
               "proposal": "build_gaussian_rwmh_cov_proposal_gamma",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
@@ -74,7 +74,7 @@ if __name__ == "__main__":
 
 
     keys = jax.random.split(OP_key, n_chains)
-    with jax.disable_jit(True):
+    with jax.disable_jit(False):
         with jax.default_device(jax.devices("cpu")[0]):
             with jax.debug_nans(False):
                 res = wrapper_smc(keys)

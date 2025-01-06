@@ -6,7 +6,7 @@ from blackjax.smc.solver import dichotomy
 from jax import numpy as jnp, Array
 from jax.typing import ArrayLike
 
-from criteria_functions import square_distance
+from adaptive_smc.criteria_functions import square_distance
 
 PRNGKey = jax.Array
 
