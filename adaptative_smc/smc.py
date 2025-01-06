@@ -6,6 +6,8 @@ from blackjax.smc.solver import dichotomy
 from jax import numpy as jnp, Array
 from jax.typing import ArrayLike
 
+from criteria_functions import square_distance
+
 PRNGKey = jax.Array
 
 
@@ -21,35 +23,12 @@ def normalize_log_weights(log_weights: ArrayLike) -> ArrayLike:
     return log_weights - jax.scipy.special.logsumexp(log_weights)
 
 
-def sq_distance(x: ArrayLike, y: ArrayLike, _: ArrayLike, __: int) -> ArrayLike:
-    return jnp.sum(jnp.square(x - y), axis=-1)
-
-
-def mahalanobis(x: ArrayLike, y: ArrayLike, particles: ArrayLike, i: int) -> ArrayLike:
-    """
-    At iteration i, for particles x, and proposed particles y, compute the Mahalanobis distances between x and y.
-    The scaling matrix is the estimated covariance of the particles at iteration i - 1.
-    """
-    dim = particles.shape[-1]
-
-    def _mahalanobis(x, y):
-        if dim > 1:
-            cov = jnp.cov(particles.at[i - 1].get().reshape((particles.shape[1] * particles.shape[2]),
-                                                            dim), rowvar=False)
-        else:
-            cov = jnp.var(particles.at[i - 1].get().reshape((particles.shape[1] * particles.shape[2]),
-                                                            dim), axis=0).reshape((1, 1))
-        return jnp.einsum('j,k,jk->', x - y, x - y, jnp.linalg.inv(cov))
-
-    return jax.lax.select(i == 0, jnp.sum(jnp.square(x - y), axis=-1), _mahalanobis(x, y))
-
-
 def log_ess(delta: float, log_weights: Array) -> float:
     """
     See Algorithm 17.3,
     Introduction to Sequential Monte Carlo, Chopin, Papaspiliopoulos
     """
-    N_particles = jnp.sum(*log_weights.shape)
+    N_particles = jnp.prod(jnp.array(log_weights.shape))
     log_ess = 2 * jax.scipy.special.logsumexp(delta * log_weights) - jax.scipy.special.logsumexp(
         2 * delta * log_weights)
     log_ess_scaled = log_ess - jnp.log(N_particles)
@@ -65,18 +44,27 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                  base_measure_sampler: Callable[[PRNGKey], ArrayLike],
                  log_likelihood_fn: Callable[[ArrayLike], ArrayLike],
                  build_mh_proposal: Callable[
-                     [ArrayLike, ArrayLike, Optional[ArrayLike], int], Tuple[
+                     [ArrayLike, ArrayLike, Optional[ArrayLike], Callable, int], Tuple[
                          Callable[[ArrayLike, ArrayLike], ArrayLike],
                          Callable[[PRNGKey, ArrayLike], ArrayLike]]],
                  optimisation: Callable[[Callable[[ArrayLike], ArrayLike], ArrayLike], ArrayLike] = None,
-                 criteria_function: Callable[[ArrayLike, ArrayLike, ArrayLike, int], ArrayLike] = sq_distance
+                 criteria_function: Callable[[ArrayLike, ArrayLike, ArrayLike, int], ArrayLike] = square_distance
                  ) -> None:
         self.logbase_density_fn = logbase_density_fn
         self.base_measure_sampler = base_measure_sampler
+        self.vmapped_base_measure_sampler = jnp.vectorize(base_measure_sampler,
+                                                          signature='(2)->(d)')  # Assuming a vmappable function
         self.log_likelihood_fn = log_likelihood_fn
+        self.vmapped_log_likelihood_fn = jax.vmap(log_likelihood_fn)
         self.build_mh_proposal = build_mh_proposal
         self.optimisation = optimisation
         self.criteria_function = criteria_function
+
+    def log_tgt_fn(self, lmbda):
+        def _log_tgt_fn(x):
+            return lmbda * self.log_likelihood_fn(x) + self.logbase_density_fn(x)
+
+        return _log_tgt_fn
 
     def log_weights_fn(self, dlmbda):
         def _log_weights_fn(x):
@@ -108,7 +96,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             if tempering_sequence starts at 0, then the 0-th target density is the base measure.
             tempering_sequence = (\lambda_0, \ldots, \lambda_T)
             diff_tempering_sequence = (\lambda_0, \lambda_1-\lambda_0, \ldots, \lambda_T-\lambda_{T-1})
-            particles is a (T + 1, M, P, *shape) arrays containing for each iteration 0<=t<=T), the particles X_t^{p, m},
+            particles is a (T + 1, M, P, dim) arrays containing for each iteration 0<=t<=T), the particles X_t^{p, m},
             such that (X_t^n) has marginal \pi_{t-1}, with \pi_{-1} = the base measure
         """
         iteration = len(tempering_sequence)
@@ -122,12 +110,13 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         num_particles = num_parallel_chain * P
 
         subkey = jax.random.fold_in(key, -1)
-        subkeys = jax.random.split(subkey, num_particles)
+        subkeys = jax.random.split(subkey, (num_parallel_chain, P))
 
-        init_particles = self.base_measure_sampler(subkeys)
-        shape = init_particles.shape[1:]
-        particles = jnp.zeros((iteration + 1, num_parallel_chain, P, *shape))
-        particles = particles.at[0].set(init_particles.reshape((num_parallel_chain, P, *shape)))
+        init_particles = self.vmapped_base_measure_sampler(subkeys)
+        dim = init_particles.shape[-1]
+        init_particles = init_particles.reshape((num_parallel_chain, P, dim))
+        particles = jnp.zeros((iteration + 1, num_parallel_chain, P, dim))
+        particles = particles.at[0].set(init_particles)
 
         mh_proposal_parameters = jnp.zeros((iteration + 1, *initial_mh_proposal_parameter.shape))
         mh_proposal_parameters = mh_proposal_parameters.at[0].set(initial_mh_proposal_parameter)
@@ -138,11 +127,12 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         log_weights = jnp.zeros((iteration + 1, num_parallel_chain, P))
 
         log_proposal, proposal_sampler = self.build_mh_proposal(initial_mh_proposal_parameter, particles, log_weights,
+                                                                self.log_tgt_fn(tempering_sequence.at[0].get()),
                                                                 0)
-        init_proposed_particles = jax.vmap(proposal_sampler, in_axes=(0, 0))(subkeys, init_particles)
-        vmapped_log_likelihood_fn = jax.vmap(self.log_likelihood_fn)
+        init_proposed_particles = jax.vmap(proposal_sampler, in_axes=(0, 0))(subkeys, init_particles.reshape(
+            (num_particles, dim))).reshape((num_parallel_chain, P, dim))
         if target_ess:
-            _log_weights = vmapped_log_likelihood_fn(init_particles)
+            _log_weights = self.vmapped_log_likelihood_fn(init_particles)
             dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0., 1.0, 1e-2, 10)
             dlmbda = jnp.clip(dlmbda, 0., 1.0)
             tempering_sequence = tempering_sequence.at[0].set(dlmbda)
@@ -153,7 +143,6 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
         log_G0_init_particles = log_G0_fn(init_particles)
         init_log_weights = normalize_log_weights(log_G0_init_particles)
-        init_log_weights = init_log_weights.reshape((num_parallel_chain, P))
 
         log_weights = log_weights.at[0].set(init_log_weights)
 
@@ -165,16 +154,15 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         if self.optimisation:
             @jax.jit
             def m_estimate_of_criteria_function(param):
-                _new_particles = init_particles.reshape((num_particles, *shape))
-                _new_proposed_particles = init_proposed_particles.reshape((num_particles, *shape))
-                _log_proposal_fn, _ = self.build_mh_proposal(param, particles, log_weights, 1)
-                log_proposal_fn = jax.vmap(_log_proposal_fn)
-                log_proposal_from_particles_to_proposed_particles = log_proposal_fn(_new_particles,
-                                                                                    _new_proposed_particles)
-                diff_log_proposal = log_proposal_fn(_new_proposed_particles,
-                                                    _new_particles) - log_proposal_from_particles_to_proposed_particles
+                _log_proposal_fn, _ = self.build_mh_proposal(param, particles, log_weights,
+                                                             self.log_tgt_fn(tempering_sequence.at[1].get()), 1)
+                log_proposal_fn = jnp.vectorize(_log_proposal_fn, signature="(d),(d)->()")
+                log_proposal_from_particles_to_proposed_particles = log_proposal_fn(init_particles,
+                                                                                    init_proposed_particles)
+                diff_log_proposal = log_proposal_fn(init_proposed_particles,
+                                                    init_particles) - log_proposal_from_particles_to_proposed_particles
                 log_ratio = diff_log_proposal + log_g_1
-                to_sum = d_1 * jax.lax.min(1., jnp.exp(log_ratio))
+                to_sum = init_log_weights * d_1 * jax.lax.min(1., jnp.exp(log_ratio))
                 # / num_particles
                 return jnp.sum(to_sum)
 
@@ -185,9 +173,6 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             new_mh_proposal_parameter = initial_mh_proposal_parameter
         mh_proposal_parameters = mh_proposal_parameters.at[1].set(new_mh_proposal_parameter)
 
-        init_particles = init_particles.reshape((num_parallel_chain, P, *shape))
-        particles = particles.at[0].set(init_particles)
-
         def make_inner_loop(i: int, prev_lmbda: float, mh_proposal_parameter: ArrayLike,
                             particles: ArrayLike):
             """
@@ -196,12 +181,13 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
             log_target_density_at_t_minus_one_fn = lambda x: self.log_weights_fn(prev_lmbda)(
                 x) + self.logbase_density_fn(x)
-            log_proposal, proposal_sampler = self.build_mh_proposal(mh_proposal_parameter, particles, log_weights, i)
+            log_proposal, proposal_sampler = self.build_mh_proposal(mh_proposal_parameter, particles, log_weights,
+                                                                    self.log_tgt_fn(tempering_sequence.at[i].get()), i)
 
             @jax.vmap
             def inside_body_fn(key, particle):
-                _proposed_particles = jnp.zeros((num_mcmc_steps, *shape))
-                _particles = jnp.zeros((P, *shape))
+                _proposed_particles = jnp.zeros((num_mcmc_steps, dim))
+                _particles = jnp.zeros((P, dim))
                 _particles = _particles.at[0].set(particle)
                 _log_g = jnp.zeros((num_mcmc_steps,))
                 _d = jnp.zeros((num_mcmc_steps,))
@@ -216,12 +202,15 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
                     new_proposed_particle = proposal_sampler(subkey_p, particle)
                     proposed_particles_across_p = proposed_particles_across_p.at[p - 1].set(new_proposed_particle)
-                    new_log_g = self.log_likelihood_fn(new_proposed_particle) - self.log_likelihood_fn(particle) #still need to multiply by \lambda_t and add the base measure samplre
+                    new_log_g = self.log_likelihood_fn(new_proposed_particle) - self.log_likelihood_fn(
+                        particle)  # still need to multiply by \lambda_t and add the base measure samplre
 
                     new_d = self.criteria_function(particle, new_proposed_particle, particles, i)
-                    log_g_across_p = log_g_across_p.at[p - 1].set(new_log_g) #need to rename log_g into log_ratio_likelihood
-                    d_across_p = d_across_p.at[p - 1].set(new_d)
+                    log_g_across_p = log_g_across_p.at[p - 1].set(
+                        new_log_g)  # need to rename log_g into log_ratio_likelihood
                     new_log_q = log_proposal(particle, new_proposed_particle)
+
+                    d_across_p = d_across_p.at[p - 1].set(new_d)
                     log_q_across_p = log_q_across_p.at[p - 1].set(new_log_q)
                     log_target_density_at_t_minus_one_fn_particle = log_target_density_at_t_minus_one_fn(particle)
                     log_current_tgt_density_new_proposed_particle = log_target_density_at_t_minus_one_fn(
@@ -259,10 +248,11 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             particles, log_weights, mh_proposal_parameters, acceptance_bools, important_sampling_log_weights_from_proposal_to_new_proposal, criteria, tempering_sequence, diff_tempering_sequence = carry
             subkey = jax.random.fold_in(key, i)
             ancestors = multinomial(subkey, jnp.exp(log_weights.at[i - 1].get().reshape(-1)), num_parallel_chain)
-            resampled_particles = particles.at[i - 1].get().reshape((num_particles, *shape)).at[ancestors].get()
+            resampled_particles = particles.at[i - 1].get().reshape((num_particles, dim)).at[ancestors].get()
 
             if target_ess:
-                _log_weights = vmapped_log_likelihood_fn(particles.at[i-1].get().reshape(num_particles, *shape)) #do not use new_particles, this is wrong
+                _log_weights = self.vmapped_log_likelihood_fn(
+                    particles.at[i - 1].get())  # do not use new_particles, this is wrong
                 dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0.,
                                    1.0 - tempering_sequence.at[i - 1].get(), 1e-2, 10)
                 dlmbda = jnp.clip(dlmbda, 0., 1.0 - tempering_sequence.at[i - 1].get())
@@ -276,15 +266,15 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             new_particles, new_proposed_particles, new_log_g, new_d, new_log_q, new_acceptance_bools = inside_body_fn(
                 keys, resampled_particles)
             ###
-            new_log_g = new_log_g * tempering_sequence.at[i].get() + vmapped_logbase_density_fn(new_proposed_particles) - vmapped_logbase_density_fn(new_particles.at[:,1:].get())
-            #since we may be updating the temperatures using ESS, we do not compute g inside the loop, we first decide of the temperature and then adjust to compute g
+            new_log_g = new_log_g * tempering_sequence.at[i].get() + vmapped_logbase_density_fn(
+                new_proposed_particles) - vmapped_logbase_density_fn(new_particles.at[:, 1:].get())
+            # since we may be updating the temperatures using ESS, we do not compute g inside the loop, we first decide of the temperature and then adjust to compute g
 
             particles = particles.at[i].set(new_particles)
 
             log_Gi_fn = jax.vmap(self.log_weights_fn(diff_tempering_sequence.at[i].get()))
 
-            new_log_weights = log_Gi_fn(new_particles.reshape(num_particles, *shape)).reshape(
-                (num_parallel_chain, P))
+            new_log_weights = log_Gi_fn(new_particles)
             new_log_weights = normalize_log_weights(new_log_weights)
             log_weights = log_weights.at[i].set(new_log_weights)
             truncated_weights = jnp.exp(normalize_log_weights(new_log_weights.at[:, 1:].get()))
@@ -296,22 +286,20 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                     Estimate of the criteria function for the next iteration using current samples.
                     See the notes.
                     """
-                    _new_particles = new_particles.at[:, :-1, :].get().reshape(
-                        (num_particles - num_parallel_chain,
-                         *shape))
-                    _new_proposed_particles = new_proposed_particles.reshape(
-                        (num_particles - num_parallel_chain, *shape))
-                    _log_proposal_fn, _ = self.build_mh_proposal(param, particles, log_weights, i + 1)
-                    log_proposal_fn = jax.vmap(_log_proposal_fn)
+                    _new_particles = new_particles.at[:, :-1, :].get()
+                    _new_proposed_particles = new_proposed_particles
+                    _log_proposal_fn, _ = self.build_mh_proposal(param, particles, log_weights,
+                                                                 self.log_tgt_fn(tempering_sequence.at[i + 1].get()),
+                                                                 i + 1)
+                    log_proposal_fn = jnp.vectorize(_log_proposal_fn, signature="(d),(d)->()")
                     log_proposal_from_particles_to_proposed_particles = log_proposal_fn(_new_particles,
                                                                                         _new_proposed_particles)
 
                     diff_log_proposal = log_proposal_fn(_new_proposed_particles,
                                                         _new_particles) - log_proposal_from_particles_to_proposed_particles
-                    log_ratio = diff_log_proposal.reshape((num_parallel_chain, num_mcmc_steps)) + new_log_g
+                    log_ratio = diff_log_proposal + new_log_g
 
-                    importance_sampling_log_weight_from_proposal_to_new_proposal = log_proposal_from_particles_to_proposed_particles.reshape(
-                        (num_parallel_chain, num_mcmc_steps)) - new_log_q
+                    importance_sampling_log_weight_from_proposal_to_new_proposal = log_proposal_from_particles_to_proposed_particles - new_log_q
 
                     to_sum = truncated_weights * new_d * \
                              jnp.exp(jax.lax.min(0.,
@@ -328,16 +316,14 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             acceptance_bools = acceptance_bools.at[i - 1].set(new_acceptance_bools)
 
             # The next lines are only useful for saving the IS weights
-            _new_particles = new_particles.at[:, 1:, :].get().reshape(
-                (num_particles - num_parallel_chain, *shape))
-            _new_proposed_particles = new_proposed_particles.reshape(
-                (num_particles - num_parallel_chain, *shape))
-            _log_proposal_fn, _ = self.build_mh_proposal(new_mh_proposal_parameter, particles, log_weights, i + 1)
-            log_proposal_fn = jax.vmap(_log_proposal_fn)
+            _new_particles = new_particles.at[:, 1:, :].get()
+            _new_proposed_particles = new_proposed_particles
+            _log_proposal_fn, _ = self.build_mh_proposal(new_mh_proposal_parameter, particles, log_weights,
+                                                         self.log_tgt_fn(tempering_sequence.at[i + 1].get()), i + 1)
+            log_proposal_fn = jnp.vectorize(_log_proposal_fn, signature="(d),(d)->()")
             log_proposal_from_particles_to_proposed_particles = log_proposal_fn(_new_particles,
                                                                                 _new_proposed_particles)
-            new_important_sampling_log_weights_from_proposal_to_new_proposal = log_proposal_from_particles_to_proposed_particles.reshape(
-                (num_parallel_chain, num_mcmc_steps)) - new_log_q
+            new_important_sampling_log_weights_from_proposal_to_new_proposal = log_proposal_from_particles_to_proposed_particles - new_log_q
             important_sampling_log_weights_from_proposal_to_new_proposal = \
                 important_sampling_log_weights_from_proposal_to_new_proposal.at[i - 1].set(
                     new_important_sampling_log_weights_from_proposal_to_new_proposal)

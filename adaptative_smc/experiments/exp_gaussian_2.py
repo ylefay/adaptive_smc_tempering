@@ -37,7 +37,6 @@ if __name__ == "__main__":
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
 
-    @jax.vmap
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, jnp.zeros(dim) + 20, 5 * jnp.eye(dim))
 

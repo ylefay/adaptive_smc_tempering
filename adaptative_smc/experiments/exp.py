@@ -8,7 +8,7 @@ import jax.random
 
 import optimise
 import proposals
-from problems.gaussian import create_problem
+from problems.my_logistic_problem_sonar import get_loglikelihood_fn
 from smc import GenericAdaptiveWasteFreeTemperingSMC
 from utils import save
 
@@ -22,27 +22,27 @@ def default_title():
     return output_path
 
 
-def experiment(dim: int):
+if __name__ == "__main__":
     OP_key = jax.random.PRNGKey(0)
 
-    loglikelihood_fn = create_problem(dim, scale=jnp.sqrt(0.5))
+    dim = 61
+    loglikelihood_fn = get_loglikelihood_fn(dim)
 
-    length_of_the_tempering_sequence = 50
+    length_of_the_tempering_sequence = 100
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
 
-    @jax.vmap
     def base_measure_sampler(key):
-        return jax.random.multivariate_normal(key, jnp.zeros(dim) + 20, 5 * jnp.eye(dim))
+        return jax.random.multivariate_normal(key, jnp.zeros(dim), jnp.eye(dim))
 
 
     def logbase_density_fn(x):
-        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim) + 20, cov=5 * jnp.eye(dim))
+        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim), cov=jnp.eye(dim))
 
 
     optimization_method_str = "make_constant"
+    params_optimization_method = {"minmax": [1, 4], "interval": [-0.1, 0.1], "n_steps": 20}
     params_optimization_method = {}
-    # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
     num_parallel_chain = 4000
     num_mcmc_steps = 5
@@ -58,7 +58,6 @@ def experiment(dim: int):
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
     else:
         optimization_method = None
-
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                my_proposal, optimization_method)
 
@@ -76,8 +75,3 @@ def experiment(dim: int):
     save(res, config, ['optimization_method', 'dim', 'init_param', 'num_parallel_chain', 'num_mcmc_steps'],
          [length_of_the_tempering_sequence],
          default_title())
-
-if __name__ == "__main__":
-    dims = [1, 2, 3, 4, 5, 10, 20]
-    for d in dims:
-        experiment(d)

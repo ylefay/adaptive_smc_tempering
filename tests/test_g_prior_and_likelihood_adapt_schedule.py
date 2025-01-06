@@ -14,13 +14,14 @@ jax.config.update("jax_enable_x64", True)
 
 def test():
     """
-    Checking that the samples from the posterior distribution given by a
+    Checking that the samples from the tempered posterior distribution given by a temperature \lambda,
         - Gaussian prior N(m_P, C_P)
         - Likelihood N(m_L, C_L),
-    obtained via SMC, have empirical mean m and covariance C approximately satisfying
-        C^{-1} = C_P^{-1} + C_L^{-1},
-        C^{-1}m = C_P^{-1}m_P + C_L^{-1}m_L.
-    To check the first equality, we multiply C_P^{-1} + C_L^{-1} by C, and compute the distance to the identity,
+    defined as  N(m_P, C_P) \times N(m_L, C_L)^{\lambda}, and obtained via SMC,
+    have empirical mean m and covariance C approximately satisfying
+        C^{-1} = C_P^{-1} + \lambda C_L^{-1},
+        C^{-1}m = C_P^{-1}m_P + \lambda C_L^{-1}m_L.
+    To check the first equality, we multiply C_P^{-1} + \lambda C_L^{-1} by C, and compute the distance to the identity,
         absolute tolerance of 5 % * sqrt(dim).
     Component-wise relative tolerance up to 5% for the second inequality.
     """
@@ -33,7 +34,6 @@ def test():
     mean_prior = jnp.ones(dim) * 5
     cov_prior = 5 * jnp.eye(dim)
 
-    @jax.vmap
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, mean_prior, cov_prior)
 
@@ -48,7 +48,7 @@ def test():
     num_parallel_chain = 10000
     num_mcmc_steps = 10
     init_param = jnp.array([2.38])
-    n_chains = 2
+    n_chains = 1
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                build_gaussian_rwmh_cov_proposal_gamma, optimization_method)
@@ -63,23 +63,9 @@ def test():
             res = wrapper_smc(keys)
 
     n_particles = res[0].shape[2] * res[0].shape[3]
-    cov = jax.vmap(lambda X: jnp.cov(X, rowvar=False))(
-        res[0][:, -1].reshape((*res[0][:, -1].shape[:1], n_particles, res[0].shape[-1])))
-    mean = res[0][:, -1].mean(axis=[1, 2])
-
-    target_1 = jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(
-        cov_likelihood) @ mean_likelihood
-    target_2 = jnp.linalg.inv(cov_prior) + jnp.linalg.inv(cov_likelihood)
-    rtol = 5 * 1e-2
-    assert jnp.all(jax.vmap(lambda X: jnp.allclose(X, target_1, rtol=rtol))(
-        jax.vmap(lambda X, Y: X @ Y)(jnp.linalg.inv(cov), mean)))
-    atol_accounted_for_the_dimension = 5 * 1e-2
-    assert jnp.all(jax.vmap(
-        lambda C: jnp.linalg.norm(target_2 @ C - jnp.eye(dim)) <= jnp.sqrt(dim) * atol_accounted_for_the_dimension)(
-        cov))
-    temperatures = jnp.all(res[6][:, -1] == 1.0)
-    temperatures = jnp.insert(temperatures, 0, 0., axis=1)
-    assert jnp.all(temperatures[:, -1] == 1.0)  # assert all temperatures at the end are 1.0
+    temperatures = res[6]
+    temperatures = jnp.insert(temperatures, 0, 0.)
+    assert jnp.all(temperatures[-1] == 1.0)  # assert all temperatures at the end are 1.0
 
     @partial(jax.vmap, in_axes=(0, None, None, None, None))
     def get_mean_var(lmbda, mean_prior, mean_ll, cov_prior, cov_ll):
@@ -92,11 +78,14 @@ def test():
         lmbda: temperature
         """
         cov = jnp.linalg.inv(jnp.linalg.inv(cov_prior) + jnp.linalg.inv(cov_ll) * lmbda)
-        mean = cov @ (jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(cov_ll) @ mean_ll)
+        mean = cov @ (jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(cov_ll) @ mean_ll * lmbda)
         return mean, cov
 
-    mean_and_posteriors_for_different_temperatures = get_mean_var(temperatures, mean_prior, mean_likelihood, cov_prior, cov_likelihood)
-    print(mean_and_posteriors_for_different_temperatures)
+    mean_and_posteriors_for_different_temperatures = get_mean_var(temperatures, mean_prior, mean_likelihood, cov_prior,
+                                                                  cov_likelihood)
     covs = jax.vmap(lambda X: jnp.cov(X, rowvar=False))(
-        res[0].reshape((*res[0].shape[:2], n_particles, res[0].shape[-1])))
-    means = res[0].mean(axis=[2, 3])
+        res[0][0].reshape((res[0].shape[1], n_particles, res[0].shape[-1])))
+    means = res[0][0].mean(axis=[1, 2])
+    assert jnp.allclose(means, mean_and_posteriors_for_different_temperatures[0], rtol=1e-2)
+    assert jnp.allclose(jax.vmap(jnp.diag)(covs), jax.vmap(jnp.diag)(mean_and_posteriors_for_different_temperatures[1]),
+                        rtol=4 * 1e-2) #the posterior has diagonal cov

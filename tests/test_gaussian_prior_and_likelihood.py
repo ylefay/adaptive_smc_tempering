@@ -51,7 +51,6 @@ def test():
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                build_gaussian_rwmh_cov_proposal_gamma, optimization_method)
 
-    @jax.vmap
     def wrapper_smc(key):
         return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence)
 

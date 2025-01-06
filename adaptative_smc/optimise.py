@@ -4,6 +4,18 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
+def make_optimize_within_a_fixed_grid(grid: ArrayLike) -> Callable[
+    [Callable[[ArrayLike], ArrayLike], ArrayLike], ArrayLike]:
+    """
+    Constructing a maximisation procedure of a function over a unidimensional grid.
+    All the points outside the interval defined by the minmax tuple are flattened.
+    """
+
+    def optimize_within_a_grid(func: Callable[[ArrayLike], ArrayLike], x: ArrayLike) -> ArrayLike:
+        fun_applied_to_grid = jax.vmap(func)(grid)
+        return grid.at[jnp.argmax(fun_applied_to_grid, keepdims=True).at[0].get()].get()
+
+    return optimize_within_a_grid
 
 def make_optimize_within_a_grid(minmax: Tuple[float, float], interval: Tuple[float, float], n_steps: int) -> Callable[
     [Callable[[ArrayLike], ArrayLike], ArrayLike], ArrayLike]:

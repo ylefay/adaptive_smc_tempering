@@ -25,14 +25,18 @@ def default_title():
 if __name__ == "__main__":
     OP_key = jax.random.PRNGKey(0)
 
-    dim = 1
+    """dim = 2
+    C = jax.random.multivariate_normal(jax.random.PRNGKey(0), jnp.zeros(dim), jnp.eye(dim), shape=(dim,))
+    mu = jax.random.multivariate_normal(jax.random.PRNGKey(0), jnp.ones(dim), jnp.eye(dim))
+    loglikelihood_fn, logbase_density_fn = create_problem(jax.random.PRNGKey(0), mu, C @ C.T / dim, 1000)"""
+
+    dim = 2
     loglikelihood_fn = create_problem(dim, scale=jnp.sqrt(0.5))
 
     length_of_the_tempering_sequence = 50
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
 
-    @jax.vmap
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, jnp.zeros(dim) + 20, 5 * jnp.eye(dim))
 
@@ -41,14 +45,13 @@ if __name__ == "__main__":
         return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim) + 20, cov=5 * jnp.eye(dim))
 
 
-    optimization_method_str = "make_constant"
-    params_optimization_method = {}
-    # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
+    optimization_method_str = "make_optimize_within_a_grid"
+    params_optimization_method = {"minmax": [1, 4], "interval": [-0.1, 0.1], "n_steps": 20}
 
     num_parallel_chain = 4000
     num_mcmc_steps = 5
     init_param = jnp.array([2.38])
-    n_chains = 5
+    n_chains = 2
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
               "proposal": "build_gaussian_rwmh_cov_proposal_gamma",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
@@ -66,7 +69,7 @@ if __name__ == "__main__":
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess=None)
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence)
 
 
     keys = jax.random.split(OP_key, n_chains)
