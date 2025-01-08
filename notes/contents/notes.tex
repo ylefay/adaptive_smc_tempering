@@ -20,21 +20,21 @@ At iteration $1\leq t\leq T$, for the particle $m$ and two consecutive particles
     (\tilde{X}_t^{m, p-1}, \tilde{X}_t^{m, p})
     \sim \pi_{t-1}(\dd x_t[p-1]) \otimes M_t(x_t[p-1], \dd x_t[p]).
 \end{equation}
-\begin{proof}
-    By construction, $(\tilde{X}_t^{m, 1}, \tilde{X}_t^{m,2},\ldots, \tilde{X}_t^{m,p})\sim \pi_{t-1}(\dd x_t[1])\prod_{p=2}^{P} M_t(x_t[p-1], \dd x_t[p])$, and the result is true for $p=2$.
-    For $2<p\leq P$, for any test function $g$, since $\pi_{t-1}M_t = \pi_{t-1}$
-    \begin{equation}
-        \begin{split}
-            &\int g(x_t[p-1], x_t[p]) \pi_{t-1}(\dd x_t[1])M_t(x_t[1], \dd x_t[2])\ldots M_t(x_t[p-1], \dd x_t[p])\\
-            =&\int g(x_t[p-1], x_t[p]) \pi_{t-1}(x_t[2]) \ldots M_t(x_t[2], x_t[3])\ldots M_t(x_t[p-1], \dd x_t[p])\\
-            =&\int g(x_t[p-1], x_t[p]) \pi_{t-1}(x_t[p-1]) M_t(x_t[p-1], \dd x_t[p]).
-        \end{split}
-    \end{equation}
-\end{proof}
+%\begin{proof}
+%    By construction, $(\tilde{X}_t^{m, 1}, \tilde{X}_t^{m,2},\ldots, \tilde{X}_t^{m,p})\sim \pi_{t-1}(\dd x_t[1])\prod_{p=2}^{P} M_t(x_t[p-1], \dd x_t[p])$, and the result is true for $p=2$.
+%    For $2<p\leq P$, for any test function $g$, since $\pi_{t-1}M_t = \pi_{t-1}$
+%    \begin{equation}
+%        \begin{split}
+%            &\int g(x_t[p-1], x_t[p]) \pi_{t-1}(\dd x_t[1])M_t(x_t[1], \dd x_t[2])\ldots M_t(x_t[p-1], \dd x_t[p])\\
+%            =&\int g(x_t[p-1], x_t[p]) \pi_{t-1}(x_t[2]) \ldots M_t(x_t[2], x_t[3])\ldots M_t(x_t[p-1], \dd x_t[p])\\
+%            =&\int g(x_t[p-1], x_t[p]) \pi_{t-1}(x_t[p-1]) M_t(x_t[p-1], \dd x_t[p]).
+%        \end{split}
+%    \end{equation}
+%\end{proof}
 \yvann{why in SMC WF paper, its $\pi_t\otimes M_t$?}.
 Let $t\geq 1$ and $\hat{\pi}_t\coloneq \sum_{n=1}^{N}\delta_{X_t^n}W_t^n$, $N=MP$, where $(X_t^n)_{1\leq n\leq N}$ are the gathered particles $\tilde{X}_{t}^{m,p}$ for $1\leq p\leq P$, $1\leq m \leq M$, then $\hat{\pi}_t$ is an estimate of $\pi_t$.
 Let $(M^{\theta}_{t+1})_{\theta\in \Theta}$ be a collection of Markov kernels leaving $\pi_t$ invariant and let $E(t,\theta)$ be~\eqref{eq:criteria} with the dependency in $\theta$ made explicit.
-We aim to construct an estimate of $E(t, \theta)$, let it be $\hat{E}(t, \theta)$, using the samples of iteration $t$~\eqref{eq:current_samples} then compute
+We aim to construct an estimate of $E(t, \theta)$, let it be $\hat{E}(t, \theta)$, using the samples of iteration $t$~\eqref{eq:current_samples} then compute an estimate of $\theta^*_{t+1} = \textup{argmax}_{\theta \in \Theta}E(t, \theta)$
 \begin{equation}
     \label{eq:maximisation_procedure}
     \hat{\theta}_{t+1}^{*} = \textup{argmax}_{\theta\in \Theta} \hat{E}(t, \theta).
@@ -52,6 +52,9 @@ Replacing this expectation by the unbiased estimate obtained with one-sample, an
 \end{equation}
 
 To avoid importance sampling issue, we can consider restrictive objectives or penalised objectives to replace~\eqref{eq:maximisation_procedure}, taking into account the effective sample size, the variance of the weights, or replacing $\Theta$ by a neighbourhood centered around $\hat{\theta}_t$.
+
+\paragraph{Replication}
+What about computing several $\hat{E}_s(t, \cdot)$, using $M'$ subsets of ancestors and define $\theta^{*}$ has the average of the $S$ argmins $\theta^{s,*}$, or picking $\theta^{s,*}$ that realises the minimum of $\hat{E}_s(t, \cdot)$~\citep{doi:10.1137/S1052623499363220}?
 
 \paragraph{MH kernel}
 At time $t\geq 1$, let $Q_t(x, \dd y)$ be some proposal distribution conditionally on $x\in X$.
@@ -162,7 +165,7 @@ where $\hat{\Sigma}_{t-1}$ is the estimated covariance matrix of the target dist
 The ESJD criterion is obtained with $g(x, y) = \norm{x-y}^2$, and the corresponding estimator of~\eqref{eq:criteria} given by~\eqref{eq:esjd_estimate}.
 Since all the intermediary distributions $\pi_t$ are products of identical unidimensional Gaussian distributions, the maximum of the exact ESJD is achieved for the optimal scaling $l=2.38$ in~\eqref{eq:rwmh_adaptative_smc} when $n\to\infty$.
 Indeed, let $\pi_t = \calN(\mu_t, \sigma^2_t I_n)$, then a computation shows that $I_t= 1/\sigma^2_t$, thus $y = x+2.38\sigma_t/\sqrt{n} Z$, with $Z\sim \calN(0, I_n)$ is the optimal proposal at iteration $t+1$ targeting $\pi_t$.
-Since $\hat{\Sigma}_t\to \sigma_t^2 I_n$, a.s., as $N$ goes to $\infty$, the proposal~\eqref{eq:rwmh_adaptative_smc} should be close in law to the optimal proposal when $l=2.38$.
+Since $\hat{\Sigma}_t\to \sigma_t^2 I_n$, a.s., as $N$ goes to $\infty$, the proposal~\eqref{eq:rwmh_adaptative_smc} should be close to the optimal proposal when $l=2.38$.
 We aim to estimate the optimal scaling $l$ obtained via maximising~\eqref{eq:esjd_estimate}.
 As $n$ goes to $\infty$ and the number of particles $N=MP$ goes to $\infty$, the optimal scaling $\hat{l}_{t}$ should converge to $2.38$, for all $1\leq t\leq T$.
 More generally, one can replace $\hat{\Sigma}_{t-1}$ in~\eqref{eq:rwmh_adaptative_smc} by

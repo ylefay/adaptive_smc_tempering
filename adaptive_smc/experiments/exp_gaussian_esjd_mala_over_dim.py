@@ -61,7 +61,7 @@ def experiment(dim: int):
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, None)
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, 0.5)
 
     keys = jax.random.split(OP_key, n_chains)
     with jax.disable_jit(False):

@@ -27,3 +27,4 @@ def save(res, config, title_keys, additional_title_elements, output_path=""):
         plt.title(title)
 
     plt.savefig(output_path.replace(".pkl", ".png"))
+    plt.clf()

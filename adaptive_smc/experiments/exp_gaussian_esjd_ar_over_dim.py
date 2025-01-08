@@ -32,13 +32,13 @@ def experiment(dim: int):
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
     def base_measure_sampler(key):
-        return jax.random.multivariate_normal(key, jnp.zeros(dim) + 20, 5 * jnp.eye(dim))
+        return jax.random.multivariate_normal(key, jnp.zeros(dim) + 20, jnp.eye(dim))
 
     def logbase_density_fn(x):
-        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim) + 20, cov=5 * jnp.eye(dim))
+        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim) + 20, cov= jnp.eye(dim))
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
-    params_optimization_method = {"grid": jnp.linspace(0.01, 1, 20)}
+    params_optimization_method = {"grid": jnp.linspace(0.01, 0.99, 20)}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
     num_parallel_chain = 4000
@@ -50,7 +50,7 @@ def experiment(dim: int):
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains}
-    my_proposal = getattr(proposals, config['proposal'])
+    my_proposal = getattr(proposals, config['proposal'])(**params_proposal_method)
     if config['optimization_method']:
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
     else:
@@ -64,7 +64,7 @@ def experiment(dim: int):
         return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, 0.5)
 
     keys = jax.random.split(OP_key, n_chains)
-    with jax.disable_jit(False):
+    with jax.disable_jit(True):
         with jax.default_device(jax.devices("cpu")[0]):
             with jax.debug_nans(False):
                 res = wrapper_smc(keys)
@@ -74,6 +74,6 @@ def experiment(dim: int):
 
 
 if __name__ == "__main__":
-    dims = [1, 2, 3, 5, 10]
+    dims = [1]
     for d in dims:
         experiment(d)
