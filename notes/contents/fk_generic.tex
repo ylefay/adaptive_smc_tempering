@@ -1,8 +1,0 @@
-\section{Feynman-Kac framework for generic SMC}
-We follow the notations of~\citep{dau:hal-04273259}.
-The sequence of target distributions for $t=0, \ldots, T$, is
-\begin{equation}
-    \pi_t(\dd x) = \frac{1}{L_t}\gamma_t(x)\nu(\dd x),
-\end{equation}
-with $\nu(\dd x)$ a base probability measure, $\gamma_t$ is a measurable non-negative function, $L_t\coloneq \int \gamma_t(x)\nu(\dd x)$ is the normalization constant of $\pi_t$.
-Let $G_t \coloneq \gamma_t /\gamma_{t-1}$ for $t\geq 1$ and $G_0 = \gamma_0$ be the reweighting functions. Let $M_t(x_{t-1},\dd x_t)$ be a sequence of Markov kernels, s.t. for any $t$, $M_t$ leaves $\pi_{t-1}$ invariant.
