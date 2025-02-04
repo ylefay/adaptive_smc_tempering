@@ -3,9 +3,9 @@ import jax
 import jax.numpy as jnp
 import jax.random
 
-from adaptative_smc.problems.gaussian import create_problem
-from adaptative_smc.proposals import build_gaussian_rwmh_cov_proposal_gamma
-from adaptative_smc.smc import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.problems.gaussian import create_problem
+from adaptive_smc.proposals import build_gaussian_rwmh_cov_proposal_gamma
+from adaptive_smc.smc import GenericAdaptiveWasteFreeTemperingSMC
 
 jax.config.update("jax_enable_x64", True)
 
@@ -31,7 +31,6 @@ def test():
     mean_prior = jnp.ones(dim) * 5
     cov_prior = 5 * jnp.eye(dim)
 
-    @jax.vmap
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, mean_prior, cov_prior)
 
@@ -50,7 +49,7 @@ def test():
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                build_gaussian_rwmh_cov_proposal_gamma, optimization_method)
-
+    @jax.vmap
     def wrapper_smc(key):
         return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence)
 
