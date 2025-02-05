@@ -47,8 +47,8 @@ def experiment_ar(dim: int, tau: float):
     params_optimization_method = {"grid": jnp.linspace(0, 0.99, 100)}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
-    num_parallel_chain = 8000
-    num_mcmc_steps = 12
+    num_parallel_chain = 5000
+    num_mcmc_steps = 6
     init_param = jnp.array([0])
     n_chains = 10
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
@@ -85,7 +85,7 @@ def experiment_rwmh(dim: int, tau: float):
 
     loglikelihood_fn = create_problem(dim, mean=jnp.ones(dim), cov=jnp.eye(dim) * 1 / (1 / tau ** 2 - 1))
 
-    length_of_the_tempering_sequence = 50
+    length_of_the_tempering_sequence = 30 + 5 * dim
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
 
@@ -102,8 +102,8 @@ def experiment_rwmh(dim: int, tau: float):
     #params_optimization_method = {}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
-    num_parallel_chain = 8000
-    num_mcmc_steps = 12
+    num_parallel_chain = 5000
+    num_mcmc_steps = 6
     init_param = jnp.array([2.38])
     n_chains = 10
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
@@ -138,7 +138,7 @@ def experiment_rwmh(dim: int, tau: float):
 
 if __name__ == "__main__":
     dims = [3]
-    taus = [0.05, 0.1, 0.2, 0.3, 0.4, 0.5]
+    taus = jnp.sqrt(jnp.array([0.05, 0.1, 0.2, 0.3, 0.4, 0.5]))
     for tau in taus:
         for d in dims:
             experiment_rwmh(d, tau)
