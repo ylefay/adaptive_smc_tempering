@@ -21,7 +21,7 @@ def accept_reject_MH_step(key: PRNGKey, log_density_for_proposed, log_density_fo
 
 def normalize_log_weights(log_weights: ArrayLike) -> Tuple[ArrayLike, float]:
     log_normalization = jax.scipy.special.logsumexp(log_weights)
-    return log_weights - log_normalization, log_normalization
+    return log_weights - log_normalization, log_normalization - jnp.log(log_weights.shape[0] * log_weights.shape[1])
 
 
 def log_ess(delta: float, log_weights: Array) -> float:
