@@ -47,10 +47,10 @@ def experiment_ar(dim: int, tau: float):
     params_optimization_method = {"grid": jnp.linspace(0, 0.99, 100)}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
-    num_parallel_chain = 5000
-    num_mcmc_steps = 6
+    num_parallel_chain = 2000
+    num_mcmc_steps = 10
     init_param = jnp.array([0])
-    n_chains = 10
+    n_chains = 2
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
               "proposal": "build_autoregressive_gaussian_rwmh_proposal",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
@@ -102,10 +102,10 @@ def experiment_rwmh(dim: int, tau: float):
     #params_optimization_method = {}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
-    num_parallel_chain = 5000
-    num_mcmc_steps = 6
+    num_parallel_chain = 2000
+    num_mcmc_steps = 10
     init_param = jnp.array([2.38])
-    n_chains = 10
+    n_chains = 2
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
               "proposal": "build_gaussian_rwmh_cov_proposal_gamma",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
@@ -137,8 +137,9 @@ def experiment_rwmh(dim: int, tau: float):
          default_title())
 
 if __name__ == "__main__":
-    dims = [3]
+    dims = [20]
     taus = jnp.sqrt(jnp.array([0.05, 0.1, 0.2, 0.3, 0.4, 0.5]))
+    taus = jnp.sqrt(jnp.array([0.1]))
     for tau in taus:
         for d in dims:
             experiment_rwmh(d, tau)
