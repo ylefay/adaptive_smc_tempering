@@ -110,7 +110,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         P = num_mcmc_steps + 1
         num_particles = num_parallel_chain * P
 
-        subkey = jax.random.fold_in(key, -1)
+        subkey = jax.random.fold_in(key, 0)
         subkeys = jax.random.split(subkey, (num_parallel_chain, P))
 
         init_particles = self.vmapped_base_measure_sampler(subkeys)
@@ -122,10 +122,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         mh_proposal_parameters = jnp.zeros((iteration, *initial_mh_proposal_parameter.shape))
         mh_proposal_parameters = mh_proposal_parameters.at[0].set(initial_mh_proposal_parameter)
 
-        log_normalizations = jnp.zeros((iteration + 1, ))
-
-        subkey = jax.random.fold_in(key, 0)
-        subkeys = jax.random.split(subkey, num_particles)
+        log_normalizations = jnp.zeros((iteration + 1,))
 
         log_weights = jnp.zeros((iteration + 1, num_parallel_chain, P))
 
@@ -144,7 +141,6 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
         log_normalizations = log_normalizations.at[0].set(log_normalization)
         log_weights = log_weights.at[0].set(init_log_weights)
-
 
         def make_inner_loop(i: int, prev_lmbda: float, mh_proposal_parameter: ArrayLike,
                             particles: ArrayLike):
@@ -233,7 +229,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 diff_tempering_sequence = diff_tempering_sequence.at[i].set(dlmbda)
 
             inside_body_fn = make_inner_loop(i, tempering_sequence.at[i - 1].get(),
-                                             mh_proposal_parameters.at[i-1].get(), particles)
+                                             mh_proposal_parameters.at[i - 1].get(), particles)
 
             keys = jax.random.split(subkey, num_parallel_chain)
             new_particles, new_proposed_particles, new_log_g, new_d, new_log_q, new_acceptance_bools = inside_body_fn(
