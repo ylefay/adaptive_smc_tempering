@@ -129,9 +129,11 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
         log_weights = jnp.zeros((iteration + 1, num_parallel_chain, P))
 
-        log_proposal, proposal_sampler = self.build_mh_proposal(initial_mh_proposal_parameter, particles, log_weights,
-                                                                self.log_tgt_fn(tempering_sequence.at[0].get()),
-                                                                0)
+        _log_proposal_fn, proposal_sampler = self.build_mh_proposal(initial_mh_proposal_parameter, particles,
+                                                                    log_weights,
+                                                                    self.log_tgt_fn(tempering_sequence.at[0].get()),
+                                                                    0)
+        log_proposal_fn = jnp.vectorize(_log_proposal_fn, signature="(d),(d)->()")
         init_proposed_particles = jax.vmap(proposal_sampler, in_axes=(0, 0))(subkeys, init_particles.reshape(
             (num_particles, dim))).reshape((num_parallel_chain, P, dim))
         if target_ess:
@@ -154,20 +156,24 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             init_proposed_particles) - vmapped_logbase_density_fn(init_particles)
         d_1 = jax.vmap(self.criteria_function, in_axes=(0, 0, None, None))(init_proposed_particles, init_particles,
                                                                            particles, 0)
+        new_log_q = log_proposal_fn(init_particles, init_proposed_particles)
 
         if self.optimisation:
             @jax.jit
             def m_estimate_of_criteria_function(param):
-                _log_proposal_fn, _ = self.build_mh_proposal(param, particles, log_weights,
-                                                             self.log_tgt_fn(tempering_sequence.at[1].get()), 1)
-                log_proposal_fn = jnp.vectorize(_log_proposal_fn, signature="(d),(d)->()")
-                log_proposal_from_particles_to_proposed_particles = log_proposal_fn(init_particles,
-                                                                                    init_proposed_particles)
-                diff_log_proposal = log_proposal_fn(init_proposed_particles,
-                                                    init_particles) - log_proposal_from_particles_to_proposed_particles
+                _log_proposal_param_fn, _ = self.build_mh_proposal(param, particles, log_weights,
+                                                                   self.log_tgt_fn(tempering_sequence.at[1].get()), 1)
+                log_proposal_param_fn = jnp.vectorize(_log_proposal_fn, signature="(d),(d)->()")
+                log_proposal_from_particles_to_proposed_particles = log_proposal_param_fn(init_particles,
+                                                                                          init_proposed_particles)
+                diff_log_proposal = log_proposal_param_fn(init_proposed_particles,
+                                                          init_particles) - log_proposal_from_particles_to_proposed_particles
                 log_ratio = diff_log_proposal + log_g_1
-                to_sum = init_log_weights * d_1 * jax.lax.min(1., jnp.exp(log_ratio))
-                # / num_particles
+
+                importance_sampling_log_weight_from_proposal_to_new_proposal = log_proposal_from_particles_to_proposed_particles - new_log_q
+
+                to_sum = init_log_weights * d_1 * jnp.exp(jax.lax.min(0., log_ratio) +
+                    importance_sampling_log_weight_from_proposal_to_new_proposal)
                 return jnp.sum(to_sum)
 
             criteria = criteria.at[0].set(jax.vmap(m_estimate_of_criteria_function)(GRID_CRITERIA))
