@@ -1,5 +1,5 @@
-from problems.logistic import get_dataset
-from problems.logistic import get_log_likelihood
+from adaptive_smc.problems.logistic import get_dataset
+from adaptive_smc.problems.logistic import get_log_likelihood
 
 
 def get_loglikelihood_fn(dim):

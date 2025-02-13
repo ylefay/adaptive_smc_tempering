@@ -42,6 +42,7 @@ def build_gaussian_rwmh_cov_proposal(_, particles, log_weights, log_tgt_density_
 def build_gaussian_rwmh_cov_proposal_gamma(gamma, particles, log_weights, log_tgt_density_fn, i):
     dim = particles.shape[-1]
     optimal_scale = gamma ** 2 / dim
+    jax.debug.print("{i}", i=i)
 
     def fun_to_be_called_if_i_greater_than_one():
         r"""
@@ -53,19 +54,7 @@ def build_gaussian_rwmh_cov_proposal_gamma(gamma, particles, log_weights, log_tg
         cov_hat = cov_estimate(particles_at_i_minus_one, weights_at_i_minus_one)
         return cov_hat
 
-    def fun_to_be_called_if_i_equal_zero():
-        r"""
-        For the first iteration, use the estimated covariance from the particles X_{0}^{i}\sim \nu, the base measure
-        """
-        particles_at_0 = particles.at[0].get().reshape(-1, particles.shape[-1])
-        if dim > 1:
-            cov_hat = jnp.cov(particles_at_0, rowvar=False)
-        else:
-            cov_hat = jnp.var(particles_at_0, axis=0).reshape((1, 1))
-        return cov_hat
-
-    C = jax.lax.select(i == 0, optimal_scale * fun_to_be_called_if_i_equal_zero(),
-                       optimal_scale * fun_to_be_called_if_i_greater_than_one())
+    C = optimal_scale * fun_to_be_called_if_i_greater_than_one()
 
     gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler = build_gaussian_rw_proposal(C)
 
@@ -98,19 +87,7 @@ def build_mala_proposal_gamma(gamma, particles, log_weights, log_tgt_density_fn,
         cov_hat = cov_estimate(particles_at_i_minus_one, weights_at_i_minus_one)
         return cov_hat
 
-    def fun_to_be_called_if_i_equal_zero():
-        r"""
-        For the first iteration, use the estimated covariance from the particles X_{0}^{i}\sim \nu, the base measure
-        """
-        particles_at_0 = particles.at[0].get().reshape(-1, particles.shape[-1])
-        if dim > 1:
-            cov_hat = jnp.cov(particles_at_0, rowvar=False)
-        else:
-            cov_hat = jnp.var(particles_at_0, axis=0).reshape((1, 1))
-        return cov_hat
-
-    cov_hat = jax.lax.select(i == 0, fun_to_be_called_if_i_equal_zero(),
-                             fun_to_be_called_if_i_greater_than_one())
+    cov_hat = fun_to_be_called_if_i_greater_than_one()
 
     def gaussian_mala_log_proposal(x, y):
         return jax.scipy.stats.multivariate_normal.logpdf(y, x + 0.5 * gamma ** 2 / dim ** (1 / 3) * jnp.diag(

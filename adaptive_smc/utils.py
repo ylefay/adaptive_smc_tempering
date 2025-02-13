@@ -1,8 +1,5 @@
 import pickle
 
-import matplotlib.pyplot as plt
-import numpy as np
-
 
 def save(res, config, title_keys, additional_title_elements, output_path=""):
     """

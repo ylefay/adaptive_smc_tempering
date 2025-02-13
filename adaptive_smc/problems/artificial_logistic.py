@@ -1,7 +1,7 @@
 import jax
 import jax.numpy as jnp
 
-from problems.logistic import get_log_likelihood
+from adaptive_smc.problems.logistic import get_log_likelihood
 
 
 def create_problem(OP_key, mean, cov, N):

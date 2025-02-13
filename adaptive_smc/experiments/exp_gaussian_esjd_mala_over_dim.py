@@ -6,7 +6,6 @@ import jax
 import jax.numpy as jnp
 import jax.random
 
-
 from adaptive_smc import optimise
 from adaptive_smc import proposals
 from adaptive_smc.problems.gaussian import create_problem

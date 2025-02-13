@@ -18,13 +18,14 @@ def get_log_likelihood(flipped_predictors, cdf=logistic):
     """
     if cdf == logistic:
         def tgt_log_density(beta):
-            logcdf = - jnp.log1p(jnp.exp(-flipped_predictors @ beta.T))
+            #logcdf = - jnp.log1p(jnp.exp(-jnp.einsum('ij,...j->...i', flipped_predictors, beta))) # compatible both for multiple and single inputs
+            logcdf = -jnp.log1p(jnp.exp(-flipped_predictors@beta.T))
             logcdf = jnp.nan_to_num(logcdf, False, nan=0.0, posinf=0.0, neginf=0.0)
             log_likelihood = jnp.sum(logcdf, axis=-1)
             return log_likelihood
     else:
         def tgt_log_density(beta):
-            logcdf = jnp.log(cdf(flipped_predictors @ beta.T))
+            logcdf = jnp.log(cdf(jnp.einsum('ij,...j->...i', flipped_predictors, beta)))
             logcdf = jnp.nan_to_num(logcdf, False, nan=0.0, posinf=0.0, neginf=0.0)
             log_likelihood = jnp.sum(logcdf, axis=-1)
             return log_likelihood
