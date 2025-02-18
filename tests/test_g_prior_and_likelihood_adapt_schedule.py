@@ -13,7 +13,7 @@ jax.config.update("jax_enable_x64", True)
 
 
 def test():
-    """
+    r"""
     Checking that the samples from the tempered posterior distribution given by a temperature \lambda,
         - Gaussian prior N(m_P, C_P)
         - Likelihood N(m_L, C_L),
@@ -64,12 +64,12 @@ def test():
 
     n_particles = res[0].shape[2] * res[0].shape[3]
     temperatures = res[6]
-    temperatures = jnp.insert(temperatures, 0, 0.)
-    assert jnp.all(temperatures[-1] == 1.0)  # assert all temperatures at the end are 1.0
+    temperatures = jnp.insert(temperatures, 0, 0., -1)
+    assert jnp.all(temperatures[:,-1] == 1.0)  # assert all temperatures at the end are 1.0
 
     @partial(jax.vmap, in_axes=(0, None, None, None, None))
     def get_mean_var(lmbda, mean_prior, mean_ll, cov_prior, cov_ll):
-        """
+        r"""
         Compute the mean and var of a Gaussian distribution of the form
             \calN(mean_prior, var_prior) \times \calN(mean_ll, var_ll)^{\lmbda}
 
@@ -81,11 +81,11 @@ def test():
         mean = cov @ (jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(cov_ll) @ mean_ll * lmbda)
         return mean, cov
 
-    mean_and_posteriors_for_different_temperatures = get_mean_var(temperatures, mean_prior, mean_likelihood, cov_prior,
+    mean_and_posteriors_for_different_temperatures = get_mean_var(temperatures.reshape(-1), mean_prior, mean_likelihood, cov_prior,
                                                                   cov_likelihood)
     covs = jax.vmap(lambda X: jnp.cov(X, rowvar=False))(
-        res[0][0].reshape((res[0].shape[1], n_particles, res[0].shape[-1])))
-    means = res[0][0].mean(axis=[1, 2])
+        res[0].reshape((res[0].shape[0]*res[0].shape[1], n_particles, res[0].shape[-1])))
+    means = res[0].mean(axis=[2, 3]).reshape(-1, dim)
     assert jnp.allclose(means, mean_and_posteriors_for_different_temperatures[0], rtol=1e-2)
     assert jnp.allclose(jax.vmap(jnp.diag)(covs), jax.vmap(jnp.diag)(mean_and_posteriors_for_different_temperatures[1]),
                         rtol=4 * 1e-2) #the posterior has diagonal cov

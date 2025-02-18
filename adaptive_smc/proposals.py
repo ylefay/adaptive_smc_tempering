@@ -2,23 +2,50 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
+from adaptive_smc_tempering.adaptive_smc.estimates import cov_estimate
 
-def cov_estimate(particles: ArrayLike, weights: ArrayLike) -> ArrayLike:
+
+def build_build_autoregressive_gaussian_rwmh_proposal(C):
     r"""
-    Given particles and weights at iteration t, of shapes resp. (N, dim), and (N, ),
-    the weighted covariance estimate of \pi_t is
-    (N - 1)^{-1}\sum_{1\leq i\leq N} W_{t}^{i} (X^i_t - \hat{\mu}_t) (X^i_t - \hat{\mu}_t)^{\top},
-    where \hat{\mu}_t = N^{-1}\sum_{1\leq i\leq N} X^i_t
+    Construct the build function for autoregressive proposal:
+    q(y\mid x) = N(\rho x, (1-\rho^2)C),
+    where C is a given matrix.
     """
-    N = particles.shape[0]
-    mu_hat = jnp.sum(weights[:, jnp.newaxis] * particles, axis=0) / N
-    to_sum = (particles - mu_hat)
-    cov_hat = 1 / (N - 1) * jnp.einsum('ij,ik,i->jk', to_sum, to_sum, weights)
-    """if particles.shape[-1]>1:
-        cov_hat = jnp.cov(particles, rowvar=False)
-    else:
-        cov_hat = jnp.var(particles).reshape((1, 1))"""
-    return cov_hat
+
+    def _build(rho, _, __, log_tgt_density_fn, ___):
+        def gaussian_rwmh_log_proposal(x, y):
+            return jax.scipy.stats.multivariate_normal.logpdf(y, rho * x, (1 - rho ** 2) * C)
+
+        def gaussian_rwmh_sampler(key, x):
+            return jax.random.multivariate_normal(key, rho * x, (1 - rho ** 2) * C)
+
+        return gaussian_rwmh_log_proposal, gaussian_rwmh_sampler
+
+    return _build
+
+
+def build_build_pmala_proposal(C):
+    r"""
+    Build the builder (...).
+    Preconditioned MALA proposal,
+    Auxiliary gradient-based sampling algorithms,
+    q(y\mid x) = N(y, (1-\delta/2)x+\delta/2 C \grad f, \delta C),
+    where C is a given matrix
+    """
+
+    def _build(rho, _, __, log_tgt_density_fn, ___):
+        dim = _.shape[-1]
+        C = jnp.eye(dim)
+
+        def gaussian_rwmh_log_proposal(x, y):
+            return jax.scipy.stats.multivariate_normal.logpdf(y, rho * x, (1 - rho ** 2) * C)
+
+        def gaussian_rwmh_sampler(key, x):
+            return jax.random.multivariate_normal(key, rho * x, (1 - rho ** 2) * C)
+
+        return gaussian_rwmh_log_proposal, gaussian_rwmh_sampler
+
+    return _build
 
 
 def build_gaussian_rw_proposal(C: ArrayLike):
@@ -40,9 +67,11 @@ def build_gaussian_rwmh_cov_proposal(_, particles, log_weights, log_tgt_density_
 
 
 def build_gaussian_rwmh_cov_proposal_gamma(gamma, particles, log_weights, log_tgt_density_fn, i):
+    """
+    Same as build_gaussian_rwmh_cov_proposal with gamma**2/dim in front of the covariance matrix
+    """
     dim = particles.shape[-1]
     optimal_scale = gamma ** 2 / dim
-    jax.debug.print("{i}", i=i)
 
     def fun_to_be_called_if_i_greater_than_one():
         r"""
@@ -62,19 +91,20 @@ def build_gaussian_rwmh_cov_proposal_gamma(gamma, particles, log_weights, log_tg
 
 
 def build_autoregressive_gaussian_rwmh_proposal(rho, _, __, log_tgt_density_fn, ___):
+    r"""
+    Autoregressive proposal:
+    q(y\mid x) = N(\rho x, (1-\rho^2)C),
+    where C is a fixed matrix, here I_n.
+    """
     dim = _.shape[-1]
     C = jnp.eye(dim)
-
-    def gaussian_rwmh_log_proposal(x, y):
-        return jax.scipy.stats.multivariate_normal.logpdf(y, rho * x, (1 - rho ** 2) * C)
-
-    def gaussian_rwmh_sampler(key, x):
-        return jax.random.multivariate_normal(key, rho * x, (1 - rho ** 2) * C)
-
-    return gaussian_rwmh_log_proposal, gaussian_rwmh_sampler
+    return build_build_autoregressive_gaussian_rwmh_proposal(C)(rho, _, __, log_tgt_density_fn, ___)
 
 
 def build_mala_proposal_gamma(gamma, particles, log_weights, log_tgt_density_fn, i):
+    """
+    Metropolis Adjusted Langevin proposal with a gamma parameter
+    """
     dim = particles.shape[-1]
 
     def fun_to_be_called_if_i_greater_than_one():
@@ -102,3 +132,15 @@ def build_mala_proposal_gamma(gamma, particles, log_weights, log_tgt_density_fn,
                                               gamma ** 2 / dim ** (1 / 3) * cov_hat)
 
     return gaussian_mala_log_proposal, gaussian_mala_sampler
+
+
+def build_pmala_proposal(rho, _, __, log_tgt_density_fn, ___):
+    r"""
+    Preconditioned MALA proposal,
+    Auxiliary gradient-based sampling algorithms,
+    q(y\mid x) = N(y, (1-\delta/2)x+\delta/2 C \grad f, \delta C),
+    where C is a fixed matrix, here I_n.
+    """
+    dim = _.shape[-1]
+    C = jnp.eye(dim)
+    return build_build_pmala_proposal(C)(rho, _, __, log_tgt_density_fn, ___)

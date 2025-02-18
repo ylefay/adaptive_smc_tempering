@@ -22,8 +22,8 @@ setuptools.setup(
         "scipy",
         "blackjax",
         "jax",
-        "jaxlib",
-        "numpy",
+        "jaxlib", #>=0.5
+        "numpy", #>=2.1
         "scikit-learn",
         "matplotlib",
         "particles"
