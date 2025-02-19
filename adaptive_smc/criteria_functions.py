@@ -4,6 +4,9 @@ from jax.typing import ArrayLike
 
 
 def square_distance(x: ArrayLike, y: ArrayLike, _: ArrayLike, __: int) -> ArrayLike:
+    """
+    ESJD criterion: square distance between x and y.
+    """
     return jnp.sum(jnp.square(x - y), axis=-1)
 
 
