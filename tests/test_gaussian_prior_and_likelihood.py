@@ -7,8 +7,7 @@ from adaptive_smc.problems.gaussian import create_problem
 from adaptive_smc.proposals import build_gaussian_rwmh_cov_proposal_gamma
 from adaptive_smc.smc import GenericAdaptiveWasteFreeTemperingSMC
 
-jax.config.update("jax_enable_x64", True)
-
+jax.config.update("jax_enable_x64", False)
 
 def test():
     """
@@ -37,18 +36,17 @@ def test():
     def logbase_density_fn(x):
         return jax.scipy.stats.multivariate_normal.logpdf(x, mean=mean_prior, cov=cov_prior)
 
-    length_of_the_tempering_sequence = 100
+    length_of_the_tempering_sequence = 25
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
-    optimization_method = None
-
-    num_parallel_chain = 10000
-    num_mcmc_steps = 10
+    num_parallel_chain = 10
+    num_mcmc_steps = 20000
     init_param = jnp.array([2.38])
     n_chains = 2
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               build_gaussian_rwmh_cov_proposal_gamma, optimization_method)
+                                               build_gaussian_rwmh_cov_proposal_gamma)
+
     @jax.vmap
     def wrapper_smc(key):
         return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence)
@@ -66,10 +64,10 @@ def test():
     target_1 = jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(
         cov_likelihood) @ mean_likelihood
     target_2 = jnp.linalg.inv(cov_prior) + jnp.linalg.inv(cov_likelihood)
-    rtol = 5 * 1e-2
+    rtol = 3 * 1e-2
     assert jnp.all(jax.vmap(lambda X: jnp.allclose(X, target_1, rtol=rtol))(
         jax.vmap(lambda X, Y: X @ Y)(jnp.linalg.inv(cov), mean)))
-    atol_accounted_for_the_dimension = 5 * 1e-2
+    atol_accounted_for_the_dimension = 3 * 1e-2
     assert jnp.all(jax.vmap(
         lambda C: jnp.linalg.norm(target_2 @ C - jnp.eye(dim)) <= jnp.sqrt(dim) * atol_accounted_for_the_dimension)(
         cov))

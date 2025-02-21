@@ -2,16 +2,22 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
+from adaptive_smc.smc_types import SMCState
 
-def square_distance(x: ArrayLike, y: ArrayLike, _: ArrayLike, __: int) -> ArrayLike:
+
+def square_distance(x: ArrayLike, y: ArrayLike, _: SMCState, __: int) -> ArrayLike:
+    """
+    Expected square jumping distance criterion: square distance between x and y.
+    """
     return jnp.sum(jnp.square(x - y), axis=-1)
 
 
-def mahalanobis(x: ArrayLike, y: ArrayLike, particles: ArrayLike, i: int) -> ArrayLike:
+def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCState, i: int) -> ArrayLike:
     """
     At iteration i, for particles x, and proposed particles y, compute the Mahalanobis distances between x and y.
     The scaling matrix is the estimated covariance of the particles at iteration i - 1.
     """
+    particles = state.particles
     dim = particles.shape[-1]
 
     def _mahalanobis(x, y):

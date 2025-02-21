@@ -9,7 +9,7 @@ from adaptive_smc.problems.gaussian import create_problem
 from adaptive_smc.proposals import build_gaussian_rwmh_cov_proposal_gamma
 from adaptive_smc.smc import GenericAdaptiveWasteFreeTemperingSMC
 
-jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", False)
 
 
 def test():
@@ -24,6 +24,7 @@ def test():
     To check the first equality, we multiply C_P^{-1} + \lambda C_L^{-1} by C, and compute the distance to the identity,
         absolute tolerance of 5 % * sqrt(dim).
     Component-wise relative tolerance up to 5% for the second inequality.
+    Checking this for all intermediate temperatures.
     """
     OP_key = jax.random.PRNGKey(0)
     dim = 2
@@ -40,18 +41,16 @@ def test():
     def logbase_density_fn(x):
         return jax.scipy.stats.multivariate_normal.logpdf(x, mean=mean_prior, cov=cov_prior)
 
-    length_of_the_tempering_sequence = 100
+    length_of_the_tempering_sequence = 25
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
-    optimization_method = None
-
-    num_parallel_chain = 10000
-    num_mcmc_steps = 10
+    num_parallel_chain = 10
+    num_mcmc_steps = 20000
     init_param = jnp.array([2.38])
     n_chains = 2
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               build_gaussian_rwmh_cov_proposal_gamma, optimization_method)
+                                               build_gaussian_rwmh_cov_proposal_gamma)
 
     @jax.vmap
     def wrapper_smc(key):
@@ -65,7 +64,7 @@ def test():
     n_particles = res[0].shape[2] * res[0].shape[3]
     temperatures = res[6]
     temperatures = jnp.insert(temperatures, 0, 0., -1)
-    assert jnp.all(temperatures[:,-1] == 1.0)  # assert all temperatures at the end are 1.0
+    assert jnp.all(temperatures[:, -1] == 1.0)  # assert all temperatures at the end are 1.0
 
     @partial(jax.vmap, in_axes=(0, None, None, None, None))
     def get_mean_var(lmbda, mean_prior, mean_ll, cov_prior, cov_ll):
@@ -81,11 +80,12 @@ def test():
         mean = cov @ (jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(cov_ll) @ mean_ll * lmbda)
         return mean, cov
 
-    mean_and_posteriors_for_different_temperatures = get_mean_var(temperatures.reshape(-1), mean_prior, mean_likelihood, cov_prior,
+    mean_and_posteriors_for_different_temperatures = get_mean_var(temperatures.reshape(-1), mean_prior, mean_likelihood,
+                                                                  cov_prior,
                                                                   cov_likelihood)
     covs = jax.vmap(lambda X: jnp.cov(X, rowvar=False))(
-        res[0].reshape((res[0].shape[0]*res[0].shape[1], n_particles, res[0].shape[-1])))
+        res[0].reshape((res[0].shape[0] * res[0].shape[1], n_particles, res[0].shape[-1])))
     means = res[0].mean(axis=[2, 3]).reshape(-1, dim)
     assert jnp.allclose(means, mean_and_posteriors_for_different_temperatures[0], rtol=1e-2)
     assert jnp.allclose(jax.vmap(jnp.diag)(covs), jax.vmap(jnp.diag)(mean_and_posteriors_for_different_temperatures[1]),
-                        rtol=4 * 1e-2) #the posterior has diagonal cov
+                        rtol=3 * 1e-2)  # the posterior has diagonal cov

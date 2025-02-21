@@ -1,0 +1,77 @@
+import jax
+import jax.numpy as jnp
+from jax.typing import ArrayLike
+
+from adaptive_smc.estimates import cov_increment_estimate
+from adaptive_smc.smc import SMCState
+from adaptive_smc.smc_types import LogDensity
+
+__all__ = ["build_build_autoregressive_gaussian_proposal",
+           "build_autoregressive_gaussian_proposal",
+           "build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate"
+           ]
+
+
+def build_build_autoregressive_gaussian_proposal(C: ArrayLike):
+    r"""
+    Construct the build function for autoregressive proposal:
+    q(y\mid x) = N(\rho x, (1-\rho^2)C),
+    where C is a given matrix.
+    """
+
+    def _build(state: SMCState, _: LogDensity, __: LogDensity, i):
+        rho = state.mh_proposal_parameters.at[i - 1].get()
+
+        def gaussian_ar_log_proposal(x, y):
+            return jax.scipy.stats.multivariate_normal.logpdf(y, rho * x, (1 - rho ** 2) * C)
+
+        def gaussian_ar_sampler(key, x):
+            return jax.random.multivariate_normal(key, rho * x, (1 - rho ** 2) * C)
+
+        return gaussian_ar_log_proposal, gaussian_ar_sampler, jnp.empty(1)
+
+    return _build
+
+
+def build_autoregressive_gaussian_proposal(state: SMCState, log_tgt_density_fn: LogDensity,
+                                           log_likelihood_fn: LogDensity, i: int):
+    r"""
+    Autoregressive proposal:
+    q(y\mid x) = N(\rho x, (1-\rho^2)C),
+    where C is a fixed matrix, here I_n.
+    """
+    dim = state.particles.shape[-1]
+    C = jnp.eye(dim)
+    return build_build_autoregressive_gaussian_proposal(C)(state, log_tgt_density_fn, log_likelihood_fn, i)
+
+
+def build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate(state: SMCState, log_tgt_density_fn: LogDensity,
+                                                                     log_likelihood_fn: LogDensity, i: int):
+    r"""
+    Autoregressive proposal:
+    q(y\mid x) = N(\rho x, (1-\rho^2)C),
+    where C is estimated using the particles and weights at iteration i-1,
+    using the covariance increment estimate proposed by Nicolas.
+    Should we target the covariance estimate of \pi_{t-1} or \pi_t?
+    """
+    particles = state.particles
+    log_weights = state.log_weights
+    previous_cov = state.others.at[i - 1].get()
+    dlmbda = state.tempering_sequence.at[i].get() - state.tempering_sequence.at[i - 1].get()
+
+
+    def fun_to_be_called_if_i_greater_than_one():
+        r"""
+        Should we target the covariance estimate of \pi_{t-1} or \pi_t?
+        Compute the covariance estimate of \pi_{t} given t\geq 1 as proposed by Nicolas
+        """
+        particles_at_i_minus_one = particles.at[i - 1].get().reshape(-1, particles.shape[-1])
+        log_weights_at_i_minus_one = log_weights.at[i - 1].get().reshape(-1, ) # approximate well \pi_{t-2}
+        weights_at_i_minus_one = jnp.exp(log_weights_at_i_minus_one) # targeting \pi_{t-2}
+        new_cov = previous_cov + cov_increment_estimate(particles_at_i_minus_one, weights_at_i_minus_one,
+                                                        dlmbda, log_likelihood_fn)
+        return new_cov
+
+    C = fun_to_be_called_if_i_greater_than_one()
+    proposal, sampler, _ = build_build_autoregressive_gaussian_proposal(C)(state, log_tgt_density_fn, log_likelihood_fn, i)
+    return proposal, sampler, C

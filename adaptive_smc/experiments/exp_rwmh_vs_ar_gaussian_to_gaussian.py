@@ -8,8 +8,8 @@ import jax.random
 from adaptive_smc import optimise
 from adaptive_smc import proposals
 from adaptive_smc.problems.gaussian import create_problem
+from adaptive_smc.save_and_read_and_postprocess import save
 from adaptive_smc.smc import GenericAdaptiveWasteFreeTemperingSMC
-from adaptive_smc.utils import save
 
 jax.config.update("jax_enable_x64", False)
 OP_key = jax.random.PRNGKey(0)
@@ -54,10 +54,11 @@ def experiment_ar(dim: int, tau: float):
 
     init_param = jnp.array([0])
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
-              "proposal": "build_autoregressive_gaussian_rwmh_proposal",
+              "proposal": "build_autoregressive_gaussian_proposal",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains,
+              "target_ess": target_ess,
               "tau": tau}
     my_proposal = getattr(proposals, config['proposal'])
     if config['optimization_method']:
@@ -70,22 +71,19 @@ def experiment_ar(dim: int, tau: float):
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, 0.9)
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
 
     keys = jax.random.split(OP_key, n_chains)
     with jax.disable_jit(False):
         with jax.default_device(jax.devices("cpu")[0]):
-            with jax.debug_nans(False):
-                res = wrapper_smc(keys)
-    save(res, config, ['optimization_method', 'dim', 'init_param', 'num_parallel_chain', 'num_mcmc_steps'],
-         [length_of_the_tempering_sequence],
-         default_title())
+            res = wrapper_smc(keys)
+    save(res, config, default_title())
 
 
 def experiment_rwmh(dim: int, tau: float):
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(dim, tau)
 
-    length_of_the_tempering_sequence = 30 + dim
+    length_of_the_tempering_sequence = 2
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
@@ -99,6 +97,7 @@ def experiment_rwmh(dim: int, tau: float):
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains,
+              "target_ess": target_ess,
               "tau": tau}
     my_proposal = getattr(proposals, config['proposal'])
 
@@ -112,22 +111,20 @@ def experiment_rwmh(dim: int, tau: float):
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, 0.9)
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
 
     keys = jax.random.split(OP_key, n_chains)
-    with jax.disable_jit(False):
+    with jax.disable_jit(True):
         with jax.default_device(jax.devices("cpu")[0]):
-            with jax.debug_nans(False):
-                res = wrapper_smc(keys)
-    save(res, config, ['optimization_method', 'dim', 'init_param', 'num_parallel_chain', 'num_mcmc_steps'],
-         [length_of_the_tempering_sequence],
-         default_title())
+            res = wrapper_smc(keys)
+    save(res, config, default_title())
 
 
 if __name__ == "__main__":
     num_parallel_chain = 4
-    num_mcmc_steps = 1000
+    num_mcmc_steps = 4000
     n_chains = 5
+    target_ess = 0.5
 
     dims = [2]
     taus = jnp.sqrt(jnp.array([0.1]))

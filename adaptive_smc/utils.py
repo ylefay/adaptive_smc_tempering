@@ -1,10 +1,28 @@
-import pickle
+from typing import Tuple
+
+import jax
+import jax.random
+from jax import numpy as jnp, Array
+from jax.typing import ArrayLike
 
 
-def save(res, config, title_keys, additional_title_elements, output_path=""):
+def normalize_log_weights(log_weights: ArrayLike) -> Tuple[ArrayLike, float]:
     """
-    Saving in a PKL file the config dictionnary and the output of the SMC sampler.
-    In addition, a plot of the means with error bars for each tempered distribution is saved in a PNG file.
+    Normalize the log weights \exp \log w_i and return the log normalization constant:
+        \log N^{-1}\sum_{i=1}^N \exp(\log w_i)
     """
-    with open(output_path, 'wb') as handle:
-        pickle.dump({'config': config, 'res': res}, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    log_normalization = jax.scipy.special.logsumexp(log_weights)
+    return log_weights - log_normalization, log_normalization - jnp.log(log_weights.shape[0] * log_weights.shape[1])
+
+
+def log_ess(delta: float, log_weights: Array) -> float:
+    """
+    See Algorithm 17.3,
+    Introduction to Sequential Monte Carlo, Chopin, Papaspiliopoulos
+    """
+    N_particles = jnp.prod(jnp.array(log_weights.shape))
+    log_ess = 2 * jax.scipy.special.logsumexp(delta * log_weights) - jax.scipy.special.logsumexp(
+        2 * delta * log_weights)
+    log_ess_scaled = log_ess - jnp.log(N_particles)
+    return log_ess_scaled
+

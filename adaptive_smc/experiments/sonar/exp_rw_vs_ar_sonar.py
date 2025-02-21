@@ -4,6 +4,7 @@ from datetime import datetime
 import jax
 import jax.numpy as jnp
 import jax.random
+from requests.packages import target
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
@@ -52,10 +53,11 @@ def experiment_ar(dim: int, tau: float):
 
     init_param = jnp.array([0])
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
-              "proposal": "build_autoregressive_gaussian_rwmh_proposal",
+              "proposal": "build_autoregressive_gaussian_proposal",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains,
+              "target_ess": target_ess,
               "tau": tau}
     my_proposal = getattr(proposals, config['proposal'])
     if config['optimization_method']:
@@ -68,7 +70,7 @@ def experiment_ar(dim: int, tau: float):
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, 0.9)
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
 
     keys = jax.random.split(OP_key, n_chains)
     with jax.disable_jit(False):
@@ -97,6 +99,7 @@ def experiment_rwmh(dim: int, tau: float):
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains,
+              "target_ess": target_ess,
               "tau": tau}
     my_proposal = getattr(proposals, config['proposal'])
 
@@ -110,7 +113,7 @@ def experiment_rwmh(dim: int, tau: float):
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, 0.9)
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
 
     keys = jax.random.split(OP_key, n_chains)
     with jax.disable_jit(False):
@@ -126,6 +129,7 @@ if __name__ == "__main__":
     num_parallel_chain = 4
     num_mcmc_steps = 1000
     n_chains = 5
+    target_ess = 0.5
 
     dims = [2]
     taus = jnp.sqrt(jnp.array([0.1]))
