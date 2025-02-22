@@ -67,7 +67,7 @@ def build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate(state: SMCS
         """
         particles_at_i_minus_one = particles.at[i - 1].get().reshape(-1, particles.shape[-1])
         log_weights_at_i_minus_one = log_weights.at[i - 1].get().reshape(-1, ) # approximate well \pi_{t-2}
-        weights_at_i_minus_one = jnp.exp(log_weights_at_i_minus_one) # targeting \pi_{t-2}
+        weights_at_i_minus_one = jnp.exp(log_weights_at_i_minus_one)
         new_cov = previous_cov + cov_increment_estimate(particles_at_i_minus_one, weights_at_i_minus_one,
                                                         dlmbda, log_likelihood_fn)
         return new_cov
