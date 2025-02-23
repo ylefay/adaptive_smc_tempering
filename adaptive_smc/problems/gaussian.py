@@ -30,7 +30,7 @@ def create_sparse_problem(dim, latent_dim, scale=jnp.sqrt(0.1), mean=None, cov=N
     if cov is None:
         cov = jnp.eye(dim)
 
-    cov.at[latent_dim:, latent_dim:] = jnp.eye(dim - latent_dim) * scale**2
+    cov = cov.at[latent_dim:, latent_dim:].set(jnp.eye(dim - latent_dim) * scale**2)
 
     def loglikelihood_fn(x):
         return jax.scipy.stats.multivariate_normal.logpdf(x, mean=mean, cov=cov)

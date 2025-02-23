@@ -51,12 +51,15 @@ def experiment_ar():
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
     init_param = jnp.array([0])
+    init_other = jnp.eye(dim)
+
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
-              "proposal": "build_autoregressive_gaussian_proposal",
+              "proposal": "build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains,
               "target_ess": target_ess,
+              "other": init_other,
               "tau": tau}
     my_proposal = getattr(proposals, config['proposal'])
     if config['optimization_method']:
@@ -69,7 +72,8 @@ def experiment_ar():
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
+                          init_other)
 
     keys = jax.random.split(OP_key, n_chains)
     with jax.disable_jit(False):
@@ -87,13 +91,16 @@ def experiment_rwmh():
     # params_optimization_method = {}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
+    init_other = jnp.eye(dim)
+
     init_param = jnp.array([2.38])
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
-              "proposal": "build_gaussian_rwmh_cov_proposal_gamma",
+              "proposal": "build_gaussian_rwmh_proposal_with_nicolas_cov_estimate",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains,
               "target_ess": target_ess,
+              "init_other": init_other,
               "tau": tau}
     my_proposal = getattr(proposals, config['proposal'])
 
@@ -107,7 +114,7 @@ def experiment_rwmh():
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess, init_other)
 
     keys = jax.random.split(OP_key, n_chains)
     with jax.disable_jit(False):
@@ -122,13 +129,13 @@ if __name__ == "__main__":
     n_chains = 5
     target_ess = 0.5
 
-    dim = 10
+    dim = 2
     tau = jnp.sqrt(0.1)
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(dim, tau)
 
-    experiment_rwmh()
     experiment_ar()
+    experiment_rwmh()
 
     loglikelihood_fn = create_sparse_problem(dim, latent_dim=dim // 4, mean=jnp.zeros(dim),
                                              scale=jnp.eye(dim) * 1 / (1 / tau ** 2 - 1))

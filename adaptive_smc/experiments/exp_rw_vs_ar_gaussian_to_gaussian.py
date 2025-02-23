@@ -1,3 +1,4 @@
+
 import os
 from datetime import datetime
 
@@ -52,13 +53,13 @@ def experiment_ar():
 
     init_param = jnp.array([0])
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
-              "proposal": "build_autoregressive_gaussian_proposal_with_cov_estimate",
+              "proposal": "build_build_autoregressive_gaussian_proposal",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains,
               "target_ess": target_ess,
               "tau": tau}
-    my_proposal = getattr(proposals, config['proposal'])
+    my_proposal = getattr(proposals, config['proposal'])(jnp.eye(dim))
     if config['optimization_method']:
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
     else:
@@ -89,13 +90,13 @@ def experiment_rwmh():
 
     init_param = jnp.array([2.38])
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
-              "proposal": "build_gaussian_rw_proposal",
+              "proposal": "build_build_gaussian_rw_proposal",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains,
               "target_ess": target_ess,
               "tau": tau}
-    my_proposal = getattr(proposals, config['proposal'])
+    my_proposal = getattr(proposals, config['proposal'])(jnp.eye(dim))
 
     if config['optimization_method']:
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
@@ -122,13 +123,13 @@ if __name__ == "__main__":
     n_chains = 5
     target_ess = 0.5
 
-    dim = 10
+    dim = 2
     tau = jnp.sqrt(0.1)
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(dim, tau)
 
-    experiment_rwmh()
     experiment_ar()
+    experiment_rwmh()
 
     loglikelihood_fn = create_sparse_problem(dim, latent_dim=dim // 4, mean=jnp.zeros(dim),
                                              scale=jnp.eye(dim) * 1 / (1 / tau ** 2 - 1))

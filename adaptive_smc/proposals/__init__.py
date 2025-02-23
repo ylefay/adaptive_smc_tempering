@@ -14,4 +14,6 @@ __all__ = [
     "build_mala_proposal_gamma",
     "build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate",
     "build_gaussian_rwmh_proposal_with_nicolas_cov_estimate",
+    "build_autoregressive_gaussian_proposal_with_cov_estimate",
+    "build_build_gaussian_rw_proposal"
 ]
