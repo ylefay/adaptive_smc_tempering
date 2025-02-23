@@ -69,7 +69,7 @@ def build_gaussian_rwmh_cov_proposal_gamma(state: SMCState, _: LogDensity, __: L
 
 
 
-def build_gaussian_rwmh_proposal_with_nicolas_cov_estimate(state: SMCState, log_tgt_density_fn: LogDensity,
+def build_gaussian_rwmh_proposal_with_nicolas_cov_estimate(state: SMCState, _: LogDensity,
                                                            log_likelihood_fn: LogDensity, i: int):
     r"""
     Autoregressive proposal:

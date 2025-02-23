@@ -1,5 +1,3 @@
-from typing import Callable
-
 import jax
 import jax.numpy as jnp
 
@@ -9,7 +7,7 @@ __all__ = [
     "build_mala_proposal_gamma",
 ]
 
-def build_mala_proposal_gamma(state: SMCState, log_tgt_density_fn: LogDensity, log_likelihood_fn: LogDensity, i: int):
+def build_mala_proposal_gamma(state: SMCState, log_tgt_density_fn: LogDensity, _: LogDensity, i: int):
     """
     Metropolis Adjusted Langevin proposal with a gamma parameter
     """

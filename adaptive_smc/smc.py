@@ -82,7 +82,6 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             If at iteration t+1, the proposal requires a parameter that depends on the previous iteration, then
             we suppose it was computed and stored in the array others at index t.
 
-        Remarks:
             if tempering_sequence starts at 0, then the 0-th target density is the base measure.
 
             diff_tempering_sequence = (\lambda_0, \lambda_1-\lambda_0, \ldots, \lambda_T-\lambda_{T-1})
@@ -96,7 +95,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             This is possible only for t\geq 1 since it requires samples and weights from t-1
             mh_proposal_parameters:
                 (\theta_1, \hat{\theta}_2^{*}, \ldots, \hat{\theta}_{T+1}^{*})
-                obtained via the maximisation procedure given by self.optimization method.
+                obtained via the maximisation procedure given by optimization method.
 
 
         """

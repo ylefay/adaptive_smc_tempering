@@ -11,6 +11,7 @@ Either used for (un-normalised) log-likelihood or target log density
 type LogDensity = Callable[[ArrayLike], ArrayLike]
 type LogProposal = Callable[[ArrayLike, ArrayLike], ArrayLike]
 type Sampler = Callable[[PRNGKey], ArrayLike]
+type ProposalSampler = Callable[[PRNGKey, ArrayLike], ArrayLike]
 
 
 class SMCState(NamedTuple):
@@ -21,7 +22,7 @@ class SMCState(NamedTuple):
     others: Optional[ArrayLike] = None # of shape (iteration, *initial_shape_of_other)
 
 
-type ProposalBuilder = Callable[[SMCState, LogDensity, LogDensity, int], Tuple[LogProposal, Sampler, ArrayLike]]
+type ProposalBuilder = Callable[[SMCState, LogDensity, LogDensity, int], Tuple[LogProposal, ProposalSampler, ArrayLike]]
 
 type OptimisingProcedure = Callable[
     [Callable[[ArrayLike], ArrayLike], ArrayLike], ArrayLike]

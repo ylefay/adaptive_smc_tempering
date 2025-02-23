@@ -1,15 +1,15 @@
-from typing import Callable
-
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
 from adaptive_smc.smc import SMCState
 from adaptive_smc.smc_types import LogDensity
+
 __all__ = [
     "build_build_pmala_proposal",
     "build_pmala_proposal",
 ]
+
 
 def build_build_pmala_proposal(C: ArrayLike):
     r"""

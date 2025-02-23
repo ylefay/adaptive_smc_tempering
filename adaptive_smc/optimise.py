@@ -13,7 +13,7 @@ def make_optimize_within_a_fixed_grid(grid: ArrayLike) -> OptimisingProcedure:
     All the points outside the interval defined by the minmax tuple are flattened.
     """
 
-    def optimize_within_a_grid(func: Callable[[ArrayLike], ArrayLike], x: ArrayLike) -> ArrayLike:
+    def optimize_within_a_grid(func: Callable[[ArrayLike], ArrayLike], _: ArrayLike) -> ArrayLike:
         fun_applied_to_grid = jax.vmap(func)(grid)
         return grid.at[jnp.argmax(fun_applied_to_grid, keepdims=True).at[0].get()].get()
 
