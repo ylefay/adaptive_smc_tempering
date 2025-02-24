@@ -49,7 +49,7 @@ def experiment_ar(keys):
     with jax.disable_jit(False):
         # with jax.default_device(jax.devices("cpu")[0]):
         res = wrapper_smc(keys)
-    save(res, config, default_title())
+    save(res, config, OUTPUT_PATH + default_title())
 
 
 def experiment_rwmh(keys):

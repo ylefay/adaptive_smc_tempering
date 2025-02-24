@@ -51,7 +51,7 @@ def experiment_ar(keys):
                           init_other)
 
     res = wrapper_smc(keys)
-    save(res, config, default_title())
+    save(res, config, OUTPUT_PATH + default_title())
 
 
 def experiment_rwmh(keys):
@@ -90,7 +90,7 @@ def experiment_rwmh(keys):
                           init_other)
 
     res = wrapper_smc(keys)
-    save(res, config, OUTPUT_PATH+default_title())
+    save(res, config, OUTPUT_PATH + default_title())
 
 
 if __name__ == "__main__":

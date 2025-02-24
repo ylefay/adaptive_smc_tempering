@@ -15,7 +15,7 @@ dim = 2
 
 OUTPUT_PATH = "./output/"
 
-sequential_repetitions = 1
+sequential_repetitions = 2
 
 seq_keys = jax.random.split(OP_key, sequential_repetitions)
 all_keys = jax.vmap(lambda key: jax.random.split(key, n_chains))(seq_keys)

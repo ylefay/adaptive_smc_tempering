@@ -46,10 +46,8 @@ def experiment_ar(keys):
     def wrapper_smc(key):
         return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
 
-    with jax.disable_jit(False):
-        # with jax.default_device(jax.devices("cpu")[0]):
-        res = wrapper_smc(keys)
-    save(res, config, default_title())
+    res = wrapper_smc(keys)
+    save(res, config, OUTPUT_PATH + default_title())
 
 
 def experiment_rwmh(keys):
@@ -63,7 +61,7 @@ def experiment_rwmh(keys):
 
     init_param = jnp.array([2.38])
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
-              "proposal": "build_gaussian_rw_proposal",
+              "proposal": "build_gaussian_rwmh_cov_proposal_gamma",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains,
