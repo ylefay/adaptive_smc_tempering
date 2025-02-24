@@ -4,18 +4,19 @@ from adaptive_smc.experiments.GLOBAL import *
 from adaptive_smc.problems.gaussian import create_sparse_problem
 
 
-def construct_my_prior_and_target(tau):
-    """
+def construct_my_prior_and_target():
+    r"""
     The prior is a standard Gaussian distribution.
     The target is a Gaussian distribution N(1, C),
     where C is scaled identity on the latent space otherwise scaled down to tau**2.
     """
 
-    """
-    Take the log-likehood function such that the target is N(1, tau**2 * I)
+    r"""
+    Take the log-likehood function such that the target is N(0, C),
+    with C = (1, ..., 1, \tau^2, ..., \tau^2)
     """
 
-    loglikelihood_fn = create_sparse_problem(dim, latent_dim=dim // 4, mean=jnp.zeros(dim),
+    loglikelihood_fn = create_sparse_problem(dim, latent_dim=latent_dim, mean=jnp.zeros(dim),
                                              scale=1 / (1 / tau ** 2 - 1))
 
     def base_measure_sampler(key):
@@ -29,4 +30,4 @@ def construct_my_prior_and_target(tau):
 
 tau = jnp.sqrt(0.1)
 latent_dim = 0  # if set to 0, the target is N(1, tau**2 * I)
-loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(tau)
+loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target()

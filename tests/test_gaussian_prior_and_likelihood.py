@@ -64,7 +64,7 @@ def test():
     target_1 = jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(
         cov_likelihood) @ mean_likelihood
     target_2 = jnp.linalg.inv(cov_prior) + jnp.linalg.inv(cov_likelihood)
-    rtol = 3 * 1e-2
+    rtol = 1.5 * 1e-2
     assert jnp.all(jax.vmap(lambda X: jnp.allclose(X, target_1, rtol=rtol))(
         jax.vmap(lambda X, Y: X @ Y)(jnp.linalg.inv(cov), mean)))
     atol_accounted_for_the_dimension = 3 * 1e-2
