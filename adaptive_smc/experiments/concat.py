@@ -24,8 +24,7 @@ def concat_my_pickles(list_of_path_of_pickles: List[str], list_idxs: List[int]):
         for idx in list_idxs:
             my_concat[idx] = my_concat[idx].at[
                              idx_pickle * res[idx].shape[0]: (idx_pickle + 1) * res[idx].shape[
-                                 0]].set(
-                f['res'][idx])
+                                 0]].set(f['res'][idx])
         _f.close()
 
     return {'res': my_concat, 'config': config}
