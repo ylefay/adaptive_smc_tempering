@@ -151,8 +151,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             Given the iteration 1<=i<=T, construct the inner loop function (over (1<=m<=M, 1<=p<=P)
             """
 
-            log_target_density_at_t_minus_one_fn = lambda x: self.log_weights_fn(tempering_sequence.at[i - 1].get())(
-                x) + self.logbase_density_fn(x)
+            log_target_density_at_t_minus_one_fn = self.log_tgt_fn(tempering_sequence.at[i-1].get())
             state = SMCState(particles, log_weights, mh_proposal_parameters, tempering_sequence, others)
             log_proposal, proposal_sampler, _ = self.build_mh_proposal(state,
                                                                        self.log_tgt_fn(
@@ -299,7 +298,6 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 to_sum = truncated_weights * new_d * \
                          jnp.exp(jax.lax.min(0.,
                                              log_ratio) + importance_sampling_log_weight_from_proposal_to_new_proposal)
-                # / (num_parallel_chain * num_mcmc_steps)
                 return jnp.sum(to_sum)
 
             new_mh_proposal_parameter = self.optimisation(m_estimate_of_criteria_function,

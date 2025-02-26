@@ -26,6 +26,7 @@ def cov_increment_estimate(particles: ArrayLike, weights: ArrayLike, dlambda: Ar
         \dlambda\times \hat{\bbE}_t[(X-\hat{\bbE}_t(X))(X-\hat{\bbE}_t(X))^{\top} . (s-\hat{\bbE}(s))],
     where s is the log-likelihood function, and $\hat{\bbE}_t is the weighted mean operator at iteration t
     targeting expectations under \pi_t (i.e., X_t approx. \sim \pi_{t-1})
+    If at iteration t+1, you aim to compute the estimate for \pi_{t}, then set the weights to 1.
 
     """
     weights = weights / jnp.sum(weights)  # ensuring normalised weights

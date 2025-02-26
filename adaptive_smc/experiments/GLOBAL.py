@@ -8,14 +8,14 @@ OP_key = jax.random.PRNGKey(0)
 
 num_parallel_chain = 16
 num_mcmc_steps = 4000
-n_chains = 5
-target_ess = 0.5
+n_chains = 1
+target_ess = 0.6
 
-dim = 2
+dim = 10
 
 OUTPUT_PATH = "./output/"
 
-sequential_repetitions = 2
+sequential_repetitions = 1
 
 seq_keys = jax.random.split(OP_key, sequential_repetitions)
 all_keys = jax.vmap(lambda key: jax.random.split(key, n_chains))(seq_keys)

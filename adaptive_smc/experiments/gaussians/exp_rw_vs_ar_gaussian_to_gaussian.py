@@ -18,9 +18,6 @@ def default_title():
 
 
 def experiment_ar(keys):
-    length_of_the_tempering_sequence = 30 + dim
-    my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
-
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     params_optimization_method = {"grid": jnp.linspace(0, 0.99, 100)}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
@@ -53,9 +50,6 @@ def experiment_ar(keys):
 
 
 def experiment_rwmh(keys):
-    length_of_the_tempering_sequence = 30 + dim
-    my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
-
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     params_optimization_method = {"grid": jnp.linspace(0.01, 5, 200)}
     # params_optimization_method = {}
