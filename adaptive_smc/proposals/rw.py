@@ -74,7 +74,7 @@ def build_gaussian_rwmh_proposal_with_nicolas_cov_estimate(state: SMCState, _: L
     where C is estimated using the particles and weights at iteration i-1,
     using the covariance increment estimate proposed by Nicolas.
     Should we target the covariance estimate of \pi_{t-1} or \pi_t?
-    Targetting \pi_t does not work.
+    Targeting \pi_t does not work.
     """
     particles = state.particles
     dim = particles.shape[-1]
@@ -94,7 +94,7 @@ def build_gaussian_rwmh_proposal_with_nicolas_cov_estimate(state: SMCState, _: L
         particles_at_i_minus_one = particles.at[i - 1].get().reshape(-1, particles.shape[-1])
         # log_weights_at_i_minus_one = log_weights.at[i - 1].get().reshape(-1, )  # approximate well \pi_{t-1}
         # weights_at_i_minus_one = jnp.exp(log_weights_at_i_minus_one)
-        no_weights = jnp.ones(log_weights.shape[1:])
+        no_weights = jnp.ones((log_weights.shape[1] * log_weights.shape[2]))
         new_cov = previous_cov + cov_increment_estimate(particles_at_i_minus_one, no_weights,
                                                         dlmbda, log_likelihood_fn)
         return new_cov

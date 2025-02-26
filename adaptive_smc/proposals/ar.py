@@ -54,11 +54,14 @@ def build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate(state: SMCS
     where C is estimated using the particles and weights at iteration i-1,
     using the covariance increment estimate proposed by Nicolas.
     Should we target the covariance estimate of \pi_{t-1} or \pi_t?
+    Targeting \pi_t does not work.
     """
     particles = state.particles
     log_weights = state.log_weights
     previous_cov = state.others.at[i - 1].get()
-    dlmbda = state.tempering_sequence.at[i].get() - state.tempering_sequence.at[i - 1].get()
+    dlmbda = jax.lax.cond(i > 1,
+                          lambda _: state.tempering_sequence.at[i - 1].get() - state.tempering_sequence.at[i - 2].get(),
+                          lambda _: state.tempering_sequence.at[0].get(), None)  # setting \lambda_{-1} = 0.
 
     def fun_to_be_called_if_i_greater_than_one():
         r"""
@@ -66,9 +69,10 @@ def build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate(state: SMCS
         Compute the covariance estimate of \pi_{t} given t\geq 1 as proposed by Nicolas
         """
         particles_at_i_minus_one = particles.at[i - 1].get().reshape(-1, particles.shape[-1])
-        log_weights_at_i_minus_one = log_weights.at[i - 1].get().reshape(-1, )  # approximate well \pi_{t-2}
-        weights_at_i_minus_one = jnp.exp(log_weights_at_i_minus_one)
-        new_cov = previous_cov + cov_increment_estimate(particles_at_i_minus_one, weights_at_i_minus_one,
+        # log_weights_at_i_minus_one = log_weights.at[i - 1].get().reshape(-1, )  # approximate well \pi_{t-2}
+        # weights_at_i_minus_one = jnp.exp(log_weights_at_i_minus_one)
+        no_weights = jnp.ones((log_weights.shape[1] * log_weights.shape[2]))
+        new_cov = previous_cov + cov_increment_estimate(particles_at_i_minus_one, no_weights,
                                                         dlmbda, log_likelihood_fn)
         return new_cov
 
