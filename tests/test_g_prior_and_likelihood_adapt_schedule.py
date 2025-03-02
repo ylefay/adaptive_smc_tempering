@@ -6,7 +6,7 @@ import jax.random
 from adaptive_smc.problems.gaussian import create_problem
 from adaptive_smc.proposals import build_gaussian_rwmh_cov_proposal_gamma
 from adaptive_smc.smc import GenericAdaptiveWasteFreeTemperingSMC
-from adaptive_smc.optimise import make_optimize_within_a_fixed_grid
+from adaptive_smc.optimise import make_optimize_within_a_fixed_grid, make_constant
 
 jax.config.update("jax_enable_x64", False)
 
@@ -45,8 +45,7 @@ def test():
     init_param = jnp.array([2.38])
     n_chains = 2
 
-    make_optimize_within_a_fixed_grid()
-
+    optimisation_method = make_constant()
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                build_gaussian_rwmh_cov_proposal_gamma, )
 

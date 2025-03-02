@@ -83,6 +83,7 @@ def build_gaussian_rwmh_proposal_with_nicolas_cov_estimate(state: SMCState, _: L
     dlmbda = jax.lax.cond(i > 1,
                           lambda _: state.tempering_sequence.at[i - 1].get() - state.tempering_sequence.at[i - 2].get(),
                           lambda _: state.tempering_sequence.at[0].get(), None)
+    #dlmbda = state.tempering_sequence.at[i].get() - state.tempering_sequence.at[i - 1].get()
     gamma = state.mh_proposal_parameters.at[i - 1].get()
     optimal_scale = gamma ** 2 / dim
 
@@ -92,8 +93,8 @@ def build_gaussian_rwmh_proposal_with_nicolas_cov_estimate(state: SMCState, _: L
         Compute the covariance estimate of \pi_{t} given t\geq 1 as proposed by Nicolas
         """
         particles_at_i_minus_one = particles.at[i - 1].get().reshape(-1, particles.shape[-1])
-        # log_weights_at_i_minus_one = log_weights.at[i - 1].get().reshape(-1, )  # approximate well \pi_{t-1}
-        # weights_at_i_minus_one = jnp.exp(log_weights_at_i_minus_one)
+        #log_weights_at_i_minus_one = log_weights.at[i - 1].get().reshape(-1, )  # approximate well \pi_{t-1}
+        #weights_at_i_minus_one = jnp.exp(log_weights_at_i_minus_one)
         no_weights = jnp.ones((log_weights.shape[1] * log_weights.shape[2]))
         new_cov = previous_cov + cov_increment_estimate(particles_at_i_minus_one, no_weights,
                                                         dlmbda, log_likelihood_fn)

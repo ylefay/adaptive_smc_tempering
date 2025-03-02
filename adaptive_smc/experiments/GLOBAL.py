@@ -9,7 +9,7 @@ OP_key = jax.random.PRNGKey(0)
 num_parallel_chain = 16
 num_mcmc_steps = 4000
 n_chains = 1
-target_ess = 0.6
+target_ess = 0.5
 
 dim = 2
 

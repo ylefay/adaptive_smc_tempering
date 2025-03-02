@@ -1,3 +1,6 @@
+from typing import Callable
+
+import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
@@ -27,15 +30,64 @@ def cov_increment_estimate(particles: ArrayLike, weights: ArrayLike, dlambda: Ar
     where s is the log-likelihood function, and $\hat{\bbE}_t is the weighted mean operator at iteration t
     targeting expectations under \pi_t (i.e., X_t approx. \sim \pi_{t-1})
     If at iteration t+1, you aim to compute the estimate for \pi_{t}, then set the weights to 1.
+    """
+
+    def dM(f: Callable):
+        _weights = weights / jnp.sum(weights)
+        likelihoods = log_likelihood_fn(particles)
+        evalf = f(particles)
+        _weights_reshaped = _weights.reshape(_weights.shape + (1,) * (jnp.ndim(evalf) - 1))
+        Ef = jnp.sum(_weights_reshaped * evalf, axis=0)
+        Es = jnp.sum(_weights * likelihoods, axis=0)
+        Efs = jnp.sum(_weights_reshaped * evalf * likelihoods.reshape(likelihoods.shape + (1,) * (jnp.ndim(evalf) - 1)),
+                      axis=0)
+        return Efs - Ef * Es
+
+    def ddM(f: Callable):
+        _weights = weights / jnp.sum(weights)
+        likelihoods = log_likelihood_fn(particles)
+        evalf = f(particles)
+        _weights_reshaped = _weights.reshape(_weights.shape + (1,) * (jnp.ndim(evalf) - 1))
+        Efssq = jnp.sum(
+            evalf * (likelihoods ** 2).reshape(likelihoods.shape + (1, ) * (jnp.ndim(evalf) - 1)) * _weights_reshaped,
+            axis=0)
+        Efs = jnp.sum(_weights_reshaped * evalf * likelihoods.reshape(likelihoods.shape + (1,) * (jnp.ndim(evalf) - 1)), axis=0)
+        Es = jnp.sum(_weights * likelihoods, axis=0)
+        Ef = jnp.sum(_weights_reshaped * evalf, axis=0)
+        Essq = jnp.sum(_weights * likelihoods ** 2, axis=0)
+        return Efssq - 2 * Efs * Es + 2 * Ef * (Es) ** 2 - Ef * Essq
 
     """
     weights = weights / jnp.sum(weights)  # ensuring normalised weights
     likelihoods = log_likelihood_fn(particles)
-    mean_log_likelihood = jnp.mean(weights * likelihoods)
+    mean_log_likelihood = jnp.sum(weights * likelihoods)
     mu_hat = jnp.sum(weights[:, jnp.newaxis] * particles, axis=0)
     to_sum = (particles - mu_hat)
     cov_hat = jnp.einsum('ij,ik,i->jk', to_sum, to_sum, weights)
     stat_cov = to_sum.reshape(to_sum.shape + (1,)) @ jnp.swapaxes(to_sum.reshape(to_sum.shape + (1,)), 1, 2) - cov_hat
     stat_dcov = stat_cov * (likelihoods - mean_log_likelihood)[:, jnp.newaxis, jnp.newaxis]
-    dcov = jnp.sum(weights[:, jnp.newaxis, jnp.newaxis] * stat_dcov, axis=0)
     return dlambda * dcov
+    
+    """
+    """
+    weights = weights / jnp.sum(weights)  # ensuring normalised weights
+    likelihoods = log_likelihood_fn(particles)
+    mean_log_likelihood = jnp.sum(weights * likelihoods)
+    xx_hat = jnp.einsum('ij,ik,i->jk', particles, particles, weights)
+    stat_xxt = particles.reshape(particles.shape + (1,)) @ jnp.swapaxes(particles.reshape(particles.shape + (1,)), 1, 2) - xx_hat
+    stat_dxxt = stat_xxt * (likelihoods - mean_log_likelihood)[:, jnp.newaxis, jnp.newaxis]
+    dxxt = jnp.sum(weights[:, jnp.newaxis, jnp.newaxis] * stat_dxxt, axis=0)
+    x_hat = jnp.sum(weights[:, jnp.newaxis] * particles, axis=0)
+    stat_x = particles - x_hat
+    stat_dx = stat_x * (likelihoods - mean_log_likelihood)[:, jnp.newaxis]
+    dx = jnp.sum(weights[:, jnp.newaxis] * stat_dx, axis=0)
+    dcov = dxxt - x_hat[:,jnp.newaxis] @ dx[jnp.newaxis,:] - dx[:,jnp.newaxis] @ x_hat[jnp.newaxis,:] 
+    return dlambda * dcov
+    
+    """
+    weights = weights / weights.sum()
+    fX = lambda X: X
+    fXXT = jax.vmap(lambda X: X[:, jnp.newaxis] @ X[jnp.newaxis, :])
+    MX = jnp.sum(weights[:, jnp.newaxis] * particles, axis=0)
+    return dlambda * dM(fXXT) + 0.5 * dlambda ** 2 * ddM(fXXT) - (dlambda * (
+            MX @ dM(fX).T + dM(fX) @ MX.T) + dlambda ** 2 * (dM(fX) @ dM(fX).T + 0.5 * (MX @ ddM(fX).T + ddM(fX) @ MX.T)))

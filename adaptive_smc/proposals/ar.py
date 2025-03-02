@@ -63,6 +63,7 @@ def build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate(state: SMCS
                           lambda _: state.tempering_sequence.at[i - 1].get() - state.tempering_sequence.at[i - 2].get(),
                           lambda _: state.tempering_sequence.at[0].get(), None)  # setting \lambda_{-1} = 0.
 
+    # dlmbda = state.tempering_sequence.at[i].get() - state.tempering_sequence.at[i - 1].get()
     def fun_to_be_called_if_i_greater_than_one():
         r"""
         Should we target the covariance estimate of \pi_{t-1} or \pi_t?
