@@ -46,9 +46,9 @@ def test():
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
     num_parallel_chain = 10
-    num_mcmc_steps = 20000
+    num_mcmc_steps = 30000
     init_param = jnp.array([2.38])
-    n_chains = 2
+    n_chains = 1
 
     optimization_method = make_optimize_within_a_fixed_grid(jnp.linspace(0.01, 5, 200))
 
@@ -83,9 +83,12 @@ def test():
         mean = cov @ (jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(cov_ll) @ mean_ll * lmbda)
         return mean, cov
 
-    rtol = 5e-2
+    rtol = 2e-2
     """
-    When the current distribution is the target (T = -1), 
+    When the current distribution is the target (T = -1 or t>=inf T : \lambda_{T} = 1.), 
     We are sure the optimal parameter is 2.38.
     """
-    assert jnp.all(jnp.allclose(res[2][:, -1], jnp.array([2.38]), rtol=rtol))
+    max_min_idx_temp_equal_1 = jnp.argwhere(res[6]==1.0)[:,1]
+    max_min_idx_temp_equal_1 = max_min_idx_temp_equal_1.reshape((n_chains, max_min_idx_temp_equal_1.shape[0]//n_chains))
+    max_min_idx_temp_equal_1 = jnp.min(max_min_idx_temp_equal_1[:,0])
+    assert jnp.all(jnp.allclose(res[2][:, max_min_idx_temp_equal_1+1:], jnp.array([2.38]), rtol=rtol))
