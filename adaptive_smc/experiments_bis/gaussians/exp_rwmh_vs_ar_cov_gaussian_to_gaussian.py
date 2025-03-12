@@ -81,5 +81,5 @@ def experiment_rwmh(keys):
 
 if __name__ == "__main__":
     for keys in all_keys:
-        experiment_ar(keys)
+        #experiment_ar(keys)
         experiment_rwmh(keys)
