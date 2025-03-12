@@ -31,5 +31,5 @@ def construct_my_prior_and_target():
 tau = jnp.sqrt(0.1)
 latent_dim = 0  # if set to 0, the target is N(1, tau**2 * I)
 loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target()
-length_of_the_tempering_sequence = 15 + dim
+length_of_the_tempering_sequence = 10 + dim
 my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)

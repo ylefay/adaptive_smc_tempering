@@ -191,7 +191,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                     log_current_tgt_density_new_proposed_particle = log_target_density_at_t_minus_one_fn(
                         new_proposed_particle)
 
-                    accept_MH_boolean = accept_reject_mh_step(key,
+                    accept_MH_boolean, _ = accept_reject_mh_step(key,
                                                               log_current_tgt_density_new_proposed_particle,
                                                               log_target_density_at_t_minus_one_fn_particle,
                                                               log_proposal(new_proposed_particle, particle),

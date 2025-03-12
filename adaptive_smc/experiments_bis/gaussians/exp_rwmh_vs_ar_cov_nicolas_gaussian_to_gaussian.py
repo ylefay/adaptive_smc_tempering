@@ -20,18 +20,20 @@ def default_title():
 def experiment_ar(keys):
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     params_optimization_method = {"grid": jnp.linspace(0, 0.99, 100)}
-
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
     init_param = jnp.array([0])
+    init_other = jnp.eye(dim)
+
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
-              "proposal": "build_build_autoregressive_gaussian_proposal",
+              "proposal": "build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains,
               "target_ess": target_ess,
+              "other": init_other,
               "tau": tau}
-    my_proposal = getattr(proposals, config['proposal'])(jnp.eye(dim))
+    my_proposal = getattr(proposals, config['proposal'])
     if config['optimization_method']:
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
     else:
@@ -42,32 +44,31 @@ def experiment_ar(keys):
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
+                          init_other)
 
-    with jax.disable_jit(False):
-        # with jax.default_device(jax.devices("cpu")[0]):
-        res = wrapper_smc(keys)
+    res = wrapper_smc(keys)
     save(res, config, OUTPUT_PATH + default_title())
 
 
 def experiment_rwmh(keys):
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     params_optimization_method = {"grid": jnp.linspace(0.01, 5, 200)}
-
-    #optimization_method_str = "make_constant"
-    #params_optimization_method = {}
     # params_optimization_method = {}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
+    init_other = jnp.eye(dim)
+
     init_param = jnp.array([2.38])
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
-              "proposal": "build_build_gaussian_rw_proposal",
+              "proposal": "build_gaussian_rwmh_proposal_with_nicolas_cov_estimate",
               "dim": dim, "tempering_sequence": my_tempering_sequence,
               "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
               "n_chains": n_chains,
               "target_ess": target_ess,
+              "init_other": init_other,
               "tau": tau}
-    my_proposal = getattr(proposals, config['proposal'])(jnp.eye(dim))
+    my_proposal = getattr(proposals, config['proposal'])
 
     if config['optimization_method']:
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
@@ -79,7 +80,8 @@ def experiment_rwmh(keys):
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
+                          init_other)
 
     res = wrapper_smc(keys)
     save(res, config, OUTPUT_PATH + default_title())
