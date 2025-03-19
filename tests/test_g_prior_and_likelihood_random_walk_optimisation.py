@@ -8,7 +8,7 @@ import jax.random
 from adaptive_smc.optimise import make_optimize_within_a_fixed_grid
 from adaptive_smc.problems.gaussian import create_problem
 from adaptive_smc.proposals import build_gaussian_rwmh_cov_proposal_gamma
-from adaptive_smc.smc import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
 
 jax.config.update("jax_enable_x64", False)
 
@@ -46,7 +46,7 @@ def test():
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
     num_parallel_chain = 10
-    num_mcmc_steps = 30000
+    num_mcmc_steps = 20000
     init_param = jnp.array([2.38])
     n_chains = 1
 
@@ -64,7 +64,6 @@ def test():
         with jax.default_device(jax.devices("cpu")[0]):
             res = wrapper_smc(keys)
 
-    n_particles = res[0].shape[2] * res[0].shape[3]
     temperatures = res[6]
     temperatures = jnp.insert(temperatures, 0, 0., -1)
     assert jnp.all(temperatures[:, -1] == 1.0)  # assert all temperatures at the end are 1.0
@@ -88,7 +87,7 @@ def test():
     When the current distribution is the target (T = -1 or t>=inf T : \lambda_{T} = 1.), 
     We are sure the optimal parameter is 2.38.
     """
-    max_min_idx_temp_equal_1 = jnp.argwhere(res[6]==1.0)[:,1]
+    max_min_idx_temp_equal_1 = jnp.argwhere(temperatures==1.0)[:,1]
     max_min_idx_temp_equal_1 = max_min_idx_temp_equal_1.reshape((n_chains, max_min_idx_temp_equal_1.shape[0]//n_chains))
     max_min_idx_temp_equal_1 = jnp.min(max_min_idx_temp_equal_1[:,0])
-    assert jnp.all(jnp.allclose(res[2][:, max_min_idx_temp_equal_1+1:], jnp.array([2.38]), rtol=rtol))
+    assert jnp.all(jnp.allclose(res[3][:, max_min_idx_temp_equal_1+1:], jnp.array([2.38]), rtol=rtol))

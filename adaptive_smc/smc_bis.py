@@ -418,7 +418,8 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                  log_likelihood_fn: LogDensity,
                  build_mh_proposal: ProposalBuilder,
                  optimisation: OptimisingProcedure = make_constant(),
-                 criteria_function: CriteriaFunction = square_distance
+                 criteria_function: CriteriaFunction = square_distance,
+                 fun_to_be_applied_to_the_mh_ratio_in_the_criteria = lambda x: x,
                  ) -> None:
         self.logbase_density_fn = logbase_density_fn
         self.vmapped_logbase_density_fn = jnp.vectorize(logbase_density_fn, signature='(d)->()')
@@ -431,6 +432,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         self.build_mh_proposal = build_mh_proposal
         self.optimisation = optimisation
         self.criteria_function = criteria_function
+        self.fun_to_be_applied_to_the_mh_ratio_in_the_criteria = fun_to_be_applied_to_the_mh_ratio_in_the_criteria
 
     def log_tgt_fn(self, lmbda):
         def _log_tgt_fn(x):
@@ -452,7 +454,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
     def estimate_expectation_criteria_fun(self, state, i):
         """
-        Construct estimate E_{i + 1}[g(X, Y)]
+        Construct estimate E_{i + 1}[g(z, z')  a(z, z')]
         """
         log_weights = state.log_weights.at[i].get()
         particles = state.particles.at[i].get()
@@ -461,9 +463,24 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
         def log_my_current_proposal(x, y):
             def _zero_proposal(x, y):
+                r"""
+                    q_1'(z, \dd z') = q_1(z, z') x \nu (dd z'), where \nu is the base measure,
+                    where q_1' is the density (w.r.t to Lebesgue) of the first proposal, while q_1 is the
+                    density w.r.t to \nu (typically the prior)
+                    Thus at t = 0, the extended weight is \tilde{G}_0(z, z') = G_0(z) q_1(z') = G_0(z) q_1'(z')/\nu(z').
+                    Thus setting _zero_proposal(x, y) to be nu(y), and computing
+                    "log_weights_proposal - log_weights_current_proposal"
+                    is equivalent to compute q_1'(z') - \nu(z')
+                """
                 return self.logbase_density_fn(y)
 
             def _log_my_current_proposal(x, y):
+                r"""
+                    q_{t+1}(z, \dd z') / q_{t}(z, \dd z') = q'_{t+1}(z, \dd z') / q'_{t}(z, \dd z'),
+                    where q' is the density (w.r.t to Lebesgue) of the proposal at time t, while q is the
+                    density w.r.t to \nu.
+                    The ratio of \nu cancel out, and we are left with the ratio of the proposal densities.
+                """
                 return self.build_mh_proposal(
                     state,
                     self.log_tgt_fn(state.tempering_sequence.at[i - 1].get()),
@@ -509,7 +526,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                                                log_current_tgt_density_new_proposed_particles - log_target_density_at_t_fn_particles + log_weights_proposal_inv - log_weights_proposal)
             acceptance_ratio = jnp.exp(log_acceptance_ratio)
 
-            return jnp.sum(_weights * g * acceptance_ratio)
+            return jnp.sum(_weights * g * self.fun_to_be_applied_to_the_mh_ratio_in_the_criteria(acceptance_ratio))
 
         return fun
 

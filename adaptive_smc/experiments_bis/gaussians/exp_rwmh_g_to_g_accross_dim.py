@@ -17,37 +17,36 @@ def default_title():
     return output_path
 
 
-def experiment_ar(keys):
-    optimization_method_str = "make_optimize_within_a_fixed_grid"
-    params_optimization_method = {"grid": jnp.linspace(0, 0.99, 100)}
-    # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
+def experiment_rwmh(keys, dim):
+    def construct_my_prior_and_target():
+        r"""
+        The prior is a standard Gaussian distribution.
+        The target is a Gaussian distribution N(1, C),
+        where C is scaled identity on the latent space otherwise scaled down to tau**2.
+        """
 
-    init_param = jnp.array([0])
-    config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
-              "proposal": "build_autoregressive_gaussian_proposal_with_cov_estimate",
-              "dim": dim, "tempering_sequence": my_tempering_sequence,
-              "num_parallel_chain": num_parallel_chain, "num_mcmc_steps": num_mcmc_steps, "init_param": init_param,
-              "n_chains": n_chains,
-              "target_ess": target_ess,
-              "tau": tau}
-    my_proposal = getattr(proposals, config['proposal'])
-    if config['optimization_method']:
-        optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
-    else:
-        optimization_method = None
+        r"""
+        Take the log-likehood function such that the target is N(0, C),
+        with C = (1, ..., 1, \tau^2, ..., \tau^2)
+        """
 
-    smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               my_proposal, optimization_method)
+        loglikelihood_fn = create_sparse_problem(dim, latent_dim=latent_dim, mean=jnp.zeros(dim),
+                                                 scale=1 / (1 / tau ** 2 - 1))
 
-    @jax.vmap
-    def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
+        def base_measure_sampler(key):
+            return jax.random.multivariate_normal(key, jnp.zeros(dim), jnp.eye(dim))
 
-    res = wrapper_smc(keys)
-    save(res, config, OUTPUT_PATH + default_title())
+        def logbase_density_fn(x):
+            return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim), cov=jnp.eye(dim))
 
+        return loglikelihood_fn, base_measure_sampler, logbase_density_fn
 
-def experiment_rwmh(keys):
+    tau = jnp.sqrt(0.1)
+    latent_dim = 0  # if set to 0, the target is N(1, tau**2 * I)
+    loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target()
+    length_of_the_tempering_sequence = 10 + dim
+    my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
+
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     params_optimization_method = {"grid": jnp.linspace(0.01, 5, 500)}
     # params_optimization_method = {}
@@ -80,6 +79,16 @@ def experiment_rwmh(keys):
 
 
 if __name__ == "__main__":
-    for keys in all_keys:
-        #experiment_ar(keys)
-        experiment_rwmh(keys)
+    jax.config.update("jax_enable_x64", False)
+    jax.config.update("jax_disable_jit", False)
+
+    OP_key = jax.random.PRNGKey(0)
+
+    num_parallel_chain = 16
+    num_mcmc_steps = 4000
+    n_chains = 1
+    target_ess = 0.5
+    keys = jax.random.split(OP_key, n_chains)
+    OUTPUT_PATH = "./output/"
+    for dim in range(1, 11):
+        experiment_rwmh(keys, dim)

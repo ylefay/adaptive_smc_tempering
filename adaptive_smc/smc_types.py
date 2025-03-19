@@ -14,12 +14,6 @@ type Sampler = Callable[[PRNGKey], ArrayLike]
 type ProposalSampler = Callable[[PRNGKey, ArrayLike], ArrayLike]
 
 
-class SMCState(NamedTuple):
-    particles: ArrayLike # of shape (iteration + 1, num_parallel_chain, P, dim)
-    log_weights: ArrayLike # of shape (iteration + 1, num_parallel_chain, P)
-    mh_proposal_parameters: ArrayLike # of shape (iteration, *initial_shape_of_mh_proposal_parameter)
-    tempering_sequence: ArrayLike # of shape (iteration + 1, )
-    others: Optional[ArrayLike] = None # of shape (iteration, *initial_shape_of_other)
 
 class SMCStatebis(NamedTuple):
     particles: ArrayLike  # of shape (iteration + 1, num_parallel_chain, P, dim)
@@ -30,9 +24,9 @@ class SMCStatebis(NamedTuple):
     others: Optional[ArrayLike] = None  # of shape (iteration, *initial_shape_of_other)
 
 
-type ProposalBuilder = Callable[[Union[SMCState, SMCStatebis], LogDensity, LogDensity, int], Tuple[LogProposal, ProposalSampler, ArrayLike]]
+type ProposalBuilder = Callable[[SMCStatebis, LogDensity, LogDensity, int], Tuple[LogProposal, ProposalSampler, ArrayLike]]
 
 type OptimisingProcedure = Callable[
     [Callable[[ArrayLike], ArrayLike], ArrayLike], ArrayLike]
 
-type CriteriaFunction = Callable[[ArrayLike, ArrayLike, SMCState, int], ArrayLike]
+type CriteriaFunction = Callable[[ArrayLike, ArrayLike, SMCStatebis, int], ArrayLike]

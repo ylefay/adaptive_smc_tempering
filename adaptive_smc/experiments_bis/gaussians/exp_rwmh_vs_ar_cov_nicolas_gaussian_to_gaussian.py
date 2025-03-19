@@ -23,7 +23,7 @@ def experiment_ar(keys):
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
     init_param = jnp.array([0])
-    init_other = jnp.eye(dim)
+    init_other = jnp.vstack((jnp.eye(dim), jnp.zeros(dim)))
 
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
               "proposal": "build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate",
@@ -53,11 +53,11 @@ def experiment_ar(keys):
 
 def experiment_rwmh(keys):
     optimization_method_str = "make_optimize_within_a_fixed_grid"
-    params_optimization_method = {"grid": jnp.linspace(0.01, 5, 200)}
+    params_optimization_method = {"grid": jnp.linspace(0.01, 5, 500)}
     # params_optimization_method = {}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
-    init_other = jnp.eye(dim)
+    init_other = jnp.vstack((jnp.eye(dim), jnp.zeros(dim)))
 
     init_param = jnp.array([2.38])
     config = {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,

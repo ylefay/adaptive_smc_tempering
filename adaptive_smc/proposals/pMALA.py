@@ -2,8 +2,7 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from adaptive_smc.smc import SMCState
-from adaptive_smc.smc_types import LogDensity
+from adaptive_smc.smc_types import LogDensity, SMCStatebis
 
 __all__ = [
     "build_build_pmala_proposal",
@@ -20,7 +19,7 @@ def build_build_pmala_proposal(C: ArrayLike):
     where C is a given matrix
     """
 
-    def _build(state: SMCState, log_tgt_density_fn: LogDensity, _: LogDensity, i: int):
+    def _build(state: SMCStatebis, log_tgt_density_fn: LogDensity, _: LogDensity, i: int):
         delta = state.mh_proposal_parameters.at[i - 1].get()
 
         def gaussian_mala_log_proposal(x, y):
@@ -36,7 +35,7 @@ def build_build_pmala_proposal(C: ArrayLike):
     return _build
 
 
-def build_pmala_proposal(state: SMCState, log_tgt_density_fn: LogDensity, log_likelihood_fn: LogDensity, i: int):
+def build_pmala_proposal(state: SMCStatebis, log_tgt_density_fn: LogDensity, log_likelihood_fn: LogDensity, i: int):
     r"""
     Preconditioned MALA proposal,
     Auxiliary gradient-based sampling algorithms,

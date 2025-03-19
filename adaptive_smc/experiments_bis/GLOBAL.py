@@ -1,7 +1,7 @@
 import jax
 
 jax.config.update("jax_enable_x64", False)
-jax.config.update("jax_disable_jit", True)
+jax.config.update("jax_disable_jit", False)
 # jax.config.update("default_device", "cpu")
 
 OP_key = jax.random.PRNGKey(0)
@@ -11,7 +11,7 @@ num_mcmc_steps = 4000
 n_chains = 1
 target_ess = 0.5
 
-dim = 2
+dim = 1
 
 OUTPUT_PATH = "./output/"
 

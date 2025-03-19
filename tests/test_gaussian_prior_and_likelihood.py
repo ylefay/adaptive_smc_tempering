@@ -5,7 +5,7 @@ import jax.random
 
 from adaptive_smc.problems.gaussian import create_problem
 from adaptive_smc.proposals import build_gaussian_rwmh_cov_proposal_gamma
-from adaptive_smc.smc import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
 
 jax.config.update("jax_enable_x64", False)
 
@@ -56,10 +56,11 @@ def test():
         with jax.default_device(jax.devices("cpu")[0]):
             res = wrapper_smc(keys)
 
-    n_particles = res[0].shape[2] * res[0].shape[3]
+    res = res[0][:,0] #keeping only the accepted states
+    n_particles = res.shape[2] * res.shape[3]
     cov = jax.vmap(lambda X: jnp.cov(X, rowvar=False))(
-        res[0][:, -1].reshape((*res[0][:, -1].shape[:1], n_particles, res[0].shape[-1])))
-    mean = res[0][:, -1].mean(axis=[1, 2])
+        res[:, -1].reshape((*res[:, -1].shape[:1], n_particles, res.shape[-1])))
+    mean = res[:, -1].mean(axis=[1, 2])
 
     target_1 = jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(
         cov_likelihood) @ mean_likelihood

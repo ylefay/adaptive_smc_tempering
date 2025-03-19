@@ -31,7 +31,7 @@ def experiment_ar(keys):
               "n_chains": n_chains,
               "target_ess": target_ess,
               "tau": tau}
-    my_proposal = getattr(proposals, config['proposal'])(jnp.eye(dim))
+    my_proposal = getattr(proposals, config['proposal'])(jnp.zeros(dim), jnp.eye(dim))
     if config['optimization_method']:
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
     else:
@@ -52,7 +52,7 @@ def experiment_ar(keys):
 
 def experiment_rwmh(keys):
     optimization_method_str = "make_optimize_within_a_fixed_grid"
-    params_optimization_method = {"grid": jnp.linspace(0.01, 5, 200)}
+    params_optimization_method = {"grid": jnp.linspace(0.01, 5, 500)}
 
     #optimization_method_str = "make_constant"
     #params_optimization_method = {}
@@ -67,7 +67,7 @@ def experiment_rwmh(keys):
               "n_chains": n_chains,
               "target_ess": target_ess,
               "tau": tau}
-    my_proposal = getattr(proposals, config['proposal'])(jnp.eye(dim))
+    my_proposal = getattr(proposals, config['proposal'])(jnp.zeros(dim), jnp.eye(dim))
 
     if config['optimization_method']:
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)

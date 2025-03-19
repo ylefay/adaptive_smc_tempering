@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Tuple
 
 import jax
 import jax.numpy as jnp
@@ -7,7 +7,7 @@ from jax.typing import ArrayLike
 from adaptive_smc.smc_types import LogDensity
 
 
-def cov_estimate(particles: ArrayLike, weights: ArrayLike) -> ArrayLike:
+def cov_estimate(particles: ArrayLike, weights: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
     r"""
     Given particles and weights at iteration t, of shapes resp. (N, dim), and (N, ),
     the weighted covariance estimate of \pi_t is
@@ -17,14 +17,14 @@ def cov_estimate(particles: ArrayLike, weights: ArrayLike) -> ArrayLike:
     mu_hat = jnp.sum(weights[:, jnp.newaxis] * particles, axis=0)
     to_sum = (particles - mu_hat)
     cov_hat = jnp.einsum('ij,ik,i->jk', to_sum, to_sum, weights)
-    return cov_hat
+    return cov_hat, mu_hat
 
 
 def cov_increment_estimate(particles: ArrayLike, weights: ArrayLike, dlambda: ArrayLike,
-                           log_likelihood_fn: LogDensity) -> ArrayLike:
+                           log_likelihood_fn: LogDensity) -> Tuple[ArrayLike, ArrayLike]:
     r"""
     At iteration t+1, compute the estimate of the first-order increment of the covariance of \pi_{t+1}
-    using samples and weights from iteration t.
+    using samples and weights from iteration t. Same for mean.
     The increment is equal to
         \dlambda\times \hat{\bbE}_t[(X-\hat{\bbE}_t(X))(X-\hat{\bbE}_t(X))^{\top} . (s-\hat{\bbE}(s))],
     where s is the log-likelihood function, and $\hat{\bbE}_t is the weighted mean operator at iteration t
@@ -90,4 +90,4 @@ def cov_increment_estimate(particles: ArrayLike, weights: ArrayLike, dlambda: Ar
     fXXT = jax.vmap(lambda X: X[:, jnp.newaxis] @ X[jnp.newaxis, :])
     MX = jnp.sum(weights[:, jnp.newaxis] * particles, axis=0)
     return dlambda * dM(fXXT) + 0.5 * dlambda ** 2 * ddM(fXXT) - (dlambda * (
-            MX @ dM(fX).T + dM(fX) @ MX.T) + dlambda ** 2 * (dM(fX) @ dM(fX).T + 0.5 * (MX @ ddM(fX).T + ddM(fX) @ MX.T)))
+            MX @ dM(fX).T + dM(fX) @ MX.T) + dlambda ** 2 * (dM(fX) @ dM(fX).T + 0.5 * (MX @ ddM(fX).T + ddM(fX) @ MX.T))), dlambda * dM(fX) + 0.5 * dlambda ** 2 * ddM(fX)
