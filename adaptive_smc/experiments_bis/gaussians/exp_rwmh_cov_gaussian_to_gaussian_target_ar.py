@@ -68,12 +68,14 @@ def experiment_rwmh(keys):
     else:
         optimization_method = None
 
-    fun_to_be_applied_to_the_mh_ratio_in_the_criteria = lambda x: -jnp.abs(x-0.234)
+    fun_to_be_applied_to_the_mh_ratio_in_the_criteria = lambda x: (x-0.234)
+    fun_to_be_applied_to_the_criteria = lambda x: -jnp.abs(x)
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                my_proposal, optimization_method,
                                                criteria_function = lambda w,x,y,z: 1.,
-                                               fun_to_be_applied_to_the_mh_ratio_in_the_criteria=fun_to_be_applied_to_the_mh_ratio_in_the_criteria)
+                                               fun_to_be_applied_to_the_mh_ratio_in_the_criteria=fun_to_be_applied_to_the_mh_ratio_in_the_criteria,
+                                               fun_to_be_applied_to_the_criteria=fun_to_be_applied_to_the_criteria)
 
     @jax.vmap
     def wrapper_smc(key):

@@ -11,7 +11,7 @@ num_mcmc_steps = 4000
 n_chains = 1
 target_ess = 0.5
 
-dim = 1
+dim = 4
 
 OUTPUT_PATH = "./output/"
 

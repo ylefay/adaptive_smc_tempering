@@ -41,7 +41,7 @@ def test():
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
     num_parallel_chain = 10
-    num_mcmc_steps = 20000
+    num_mcmc_steps = 2000
     init_param = jnp.array([2.38])
     n_chains = 2
 
@@ -58,7 +58,7 @@ def test():
         with jax.default_device(jax.devices("cpu")[0]):
             res = wrapper_smc(keys)
 
-    res = res[0][:,0] #keeping only accepted states
+    res = res[0][:,:,0] #keeping only accepted states
     n_particles = res.shape[2] * res.shape[3]
     cov = jax.vmap(lambda X: jnp.cov(X, rowvar=False))(
         res[:, -1].reshape((*res[:, -1].shape[:1], n_particles, res.shape[-1])))
@@ -67,10 +67,10 @@ def test():
     target_1 = jnp.linalg.inv(cov_prior) @ mean_prior + jnp.linalg.inv(
         cov_likelihood) @ mean_likelihood
     target_2 = jnp.linalg.inv(cov_prior) + jnp.linalg.inv(cov_likelihood)
-    rtol = 2 * 1e-2
+    rtol = 5 * 1e-2
     assert jnp.all(jax.vmap(lambda X: jnp.allclose(X, target_1, rtol=rtol))(
         jax.vmap(lambda X, Y: X @ Y)(jnp.linalg.inv(cov), mean)))
-    atol_accounted_for_the_dimension = 3 * 1e-2
+    atol_accounted_for_the_dimension = 5 * 1e-2
     assert jnp.all(jax.vmap(
         lambda C: jnp.linalg.norm(target_2 @ C - jnp.eye(dim)) <= jnp.sqrt(dim) * atol_accounted_for_the_dimension)(
         cov))

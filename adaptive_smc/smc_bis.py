@@ -420,6 +420,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                  optimisation: OptimisingProcedure = make_constant(),
                  criteria_function: CriteriaFunction = square_distance,
                  fun_to_be_applied_to_the_mh_ratio_in_the_criteria = lambda x: x,
+                 fun_to_be_applied_to_the_criteria = lambda x: x,
                  ) -> None:
         self.logbase_density_fn = logbase_density_fn
         self.vmapped_logbase_density_fn = jnp.vectorize(logbase_density_fn, signature='(d)->()')
@@ -433,7 +434,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         self.optimisation = optimisation
         self.criteria_function = criteria_function
         self.fun_to_be_applied_to_the_mh_ratio_in_the_criteria = fun_to_be_applied_to_the_mh_ratio_in_the_criteria
-
+        self.fun_to_be_applied_to_the_criteria = fun_to_be_applied_to_the_criteria
     def log_tgt_fn(self, lmbda):
         def _log_tgt_fn(x):
             return lmbda * self.log_likelihood_fn(x) + self.logbase_density_fn(x)
@@ -526,7 +527,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                                                log_current_tgt_density_new_proposed_particles - log_target_density_at_t_fn_particles + log_weights_proposal_inv - log_weights_proposal)
             acceptance_ratio = jnp.exp(log_acceptance_ratio)
 
-            return jnp.sum(_weights * g * self.fun_to_be_applied_to_the_mh_ratio_in_the_criteria(acceptance_ratio))
+            return self.fun_to_be_applied_to_the_criteria(jnp.sum(_weights * g * self.fun_to_be_applied_to_the_mh_ratio_in_the_criteria(acceptance_ratio)))
 
         return fun
 
