@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from jax.typing import ArrayLike
 
 from adaptive_smc.estimates import cov_estimate, cov_increment_estimate
-from adaptive_smc.smc_types import LogDensity, SMCStatebis
+from adaptive_smc.smc_types import LogDensity, SMCStatebis, ProposalBuilder
 
 __all__ = [
     "build_gaussian_rw_proposal",
@@ -106,7 +106,7 @@ def build_gaussian_rwmh_proposal_with_nicolas_cov_estimate(state: SMCStatebis, _
     return gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler, C
 
 
-def build_build_gaussian_rw_proposal(C: ArrayLike):
+def build_build_gaussian_rw_proposal(C: ArrayLike) -> ProposalBuilder:
     """
     Fixed covariance matrix (up to the scaling parameter)
     """
