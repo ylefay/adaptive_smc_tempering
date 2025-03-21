@@ -67,7 +67,7 @@ def experiment_rwmh(keys):
               "n_chains": n_chains,
               "target_ess": target_ess,
               "tau": tau}
-    my_proposal = getattr(proposals, config['proposal'])(jnp.zeros(dim), jnp.eye(dim))
+    my_proposal = getattr(proposals, config['proposal'])(jnp.eye(dim))
 
     if config['optimization_method']:
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)

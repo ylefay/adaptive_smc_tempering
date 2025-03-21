@@ -1,4 +1,5 @@
 import jax.numpy as jnp
+import jax.random
 
 from adaptive_smc.experiments_bis.GLOBAL import *
 from adaptive_smc.problems.gaussian import create_sparse_problem
@@ -16,8 +17,18 @@ def construct_my_prior_and_target():
     Take the log-likehood function such that the target is correct.
     """
 
-    def loglikehood_fn(x):
-        raise NotImplementedError
+    logpdf1 = create_sparse_problem(dim, latent_dim=latent_dim, mean=jnp.zeros(dim),
+                                    scale=1 / (1 / tau ** 2))
+    logpdf2 = create_sparse_problem(dim, latent_dim=latent_dim, mean=jnp.zeros(dim),
+                                    scale=1 / (1 / tau2 ** 2))
+
+    def loglikelihood_fn(x):
+
+        log_tgt_distrib = jnp.logaddexp(jnp.log(0.1) * logpdf1(x) , jnp.log(0.9) * logpdf2(x))
+        log_prior = jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim),
+                                                               cov = jnp.eye(dim))
+        ll = log_tgt_distrib - log_prior
+        return ll
 
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, jnp.zeros(dim), jnp.eye(dim))
@@ -30,7 +41,7 @@ def construct_my_prior_and_target():
 
 tau = jnp.sqrt(0.3)
 tau2 = jnp.sqrt(0.6)
-latent_dim = 0  # if set to 0, the target is N(1, tau**2 * I)
+latent_dim = 0  # if set to 0, the target is N(1, tau**2 * I) \beta + (1-\beta) N(0, tau'**2 I)
 loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target()
 length_of_the_tempering_sequence = 10 + dim
 my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)

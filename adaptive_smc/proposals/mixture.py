@@ -44,7 +44,7 @@ def build_build_mixture_ar_rwm(mu, C) -> ProposalBuilder:
             state.tempering_sequence,
             state.others
         )
-        gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler = build_gaussian_rwmh_cov_proposal_gamma(
+        gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler, _ = build_gaussian_rwmh_cov_proposal_gamma(
             _state_reduced_for_gaussian_rwmh, log_tgt_density_fn, log_likelihood_fn, i)
         # Construct the AR proposal.
         rhos = state.mh_proposal_parameters.at[:, 2].get()
