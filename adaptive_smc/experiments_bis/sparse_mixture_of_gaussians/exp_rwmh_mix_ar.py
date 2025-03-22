@@ -117,7 +117,7 @@ def experiment_rwm(keys):
 
 if __name__ == "__main__":
     for keys in all_keys:
-        #experiment_mixture_ar_rwm(keys)
+        experiment_mixture_ar_rwm(keys)
         experiment_ar(keys)
         experiment_rwm(keys)
 

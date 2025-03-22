@@ -68,9 +68,7 @@ def build_gaussian_rwmh_cov_proposal_gamma(state: SMCStatebis, _: LogDensity, __
 def build_gaussian_rwmh_proposal_with_nicolas_cov_estimate(state: SMCStatebis, _: LogDensity,
                                                            log_likelihood_fn: LogDensity, i: int):
     r"""
-    Autoregressive proposal:
-    q(y\mid x) = N(\rho x, (1-\rho^2)C),
-    where C is estimated using the particles and weights at iteration i-1,
+    C is estimated using the particles and weights at iteration i-1,
     using the covariance increment estimate proposed by Nicolas.
     Should we target the covariance estimate of \pi_{t-1} or \pi_t?
     Targeting \pi_t does not work.
