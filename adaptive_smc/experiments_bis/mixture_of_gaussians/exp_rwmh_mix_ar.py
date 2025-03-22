@@ -21,8 +21,8 @@ def default_title():
 def experiment_mixture_ar_rwm(keys):
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     beta_grid = jnp.linspace(0, 1, 10)
-    gamma_grid = jnp.linspace(0, 5, 100)
-    rho_grid = jnp.linspace(0, 1, 100)
+    gamma_grid = jnp.linspace(1, 5, 100)
+    rho_grid = jnp.linspace(0, 0.99, 100)
     new_grid = jnp.array([[x, y, z] for x in beta_grid for y in gamma_grid for z in rho_grid])
     params_optimization_method = {"grid": new_grid}
 
