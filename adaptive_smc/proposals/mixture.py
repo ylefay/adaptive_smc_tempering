@@ -16,8 +16,8 @@ __all__ = [
 def mixture_log_proposal(log_proposal1: LogProposal, log_proposal2: LogProposal,
                          beta: Union[float, ArrayLike]) -> LogProposal:
     def log_mixture(x, y):
-        log_density = jnp.logaddexp(
-            beta * jnp.exp(log_proposal1(x, y)),
+        log_density = jnp.log(
+            beta * jnp.exp(log_proposal1(x, y)) +
             (1 - beta) * jnp.exp(log_proposal2(x, y)))
         return log_density
 

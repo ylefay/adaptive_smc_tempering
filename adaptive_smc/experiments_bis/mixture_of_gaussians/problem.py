@@ -24,7 +24,7 @@ def construct_my_prior_and_target():
 
     def loglikelihood_fn(x):
 
-        log_tgt_distrib = jnp.logaddexp(jnp.log(0.1) * logpdf1(x) , jnp.log(0.9) * logpdf2(x))
+        log_tgt_distrib = jnp.log(0.1 * jnp.exp(logpdf1(x)) + 0.9 * jnp.exp(logpdf2(x)))
         log_prior = jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim),
                                                                cov = jnp.eye(dim))
         ll = log_tgt_distrib - log_prior
