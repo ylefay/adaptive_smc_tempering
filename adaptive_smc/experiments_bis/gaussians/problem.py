@@ -4,7 +4,7 @@ from adaptive_smc.experiments_bis.GLOBAL import *
 from adaptive_smc.problems.gaussian import create_sparse_problem
 
 
-def construct_my_prior_and_target():
+def construct_my_prior_and_target(config):
     r"""
     The prior is a standard Gaussian distribution.
     The target is a Gaussian distribution N(1, C),
@@ -15,6 +15,11 @@ def construct_my_prior_and_target():
     Take the log-likehood function such that the target is N(0, C),
     with C = (1, ..., 1, \tau^2, ..., \tau^2)
     """
+
+    config_problem = config.get('problem')
+    tau = config_problem.get('tau')
+    dim = config.get('dim')
+    latent_dim = config_problem.get('latent_dim')
 
     loglikelihood_fn = create_sparse_problem(dim, latent_dim=latent_dim, mean=jnp.zeros(dim),
                                              scale=1 / (1 / tau ** 2 - 1))
@@ -28,8 +33,3 @@ def construct_my_prior_and_target():
     return loglikelihood_fn, base_measure_sampler, logbase_density_fn
 
 
-tau = jnp.sqrt(0.3)
-latent_dim = 0  # if set to 0, the target is N(1, tau**2 * I)
-loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target()
-length_of_the_tempering_sequence = 10 + dim
-my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)

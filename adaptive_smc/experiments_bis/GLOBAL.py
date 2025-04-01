@@ -1,5 +1,4 @@
 import jax
-from IPython.testing.tools import default_config
 
 jax.config.update("jax_enable_x64", False)
 jax.config.update("jax_disable_jit", False)

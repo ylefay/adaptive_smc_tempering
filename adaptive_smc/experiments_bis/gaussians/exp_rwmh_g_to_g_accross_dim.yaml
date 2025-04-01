@@ -4,10 +4,8 @@
     sequential_repetitions: 1
     n_chains: 10
     target_ess: 0.5
-    dim: 10
     OUTPUT_PATH: "./output/"
     prefix: "config1"
     problem:
-        latent_dim: 0
-        tau: 0.5477225575051661
-        tau2: 0.31622776601683794
+      tau: 0.31622776601683794 # sqrt(0.1)
+      latent_dim_coeff: 0
