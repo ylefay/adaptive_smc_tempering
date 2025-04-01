@@ -49,9 +49,10 @@ def cov_increment_estimate(particles: ArrayLike, weights: ArrayLike, dlambda: Ar
         evalf = f(particles)
         _weights_reshaped = _weights.reshape(_weights.shape + (1,) * (jnp.ndim(evalf) - 1))
         Efssq = jnp.sum(
-            evalf * (likelihoods ** 2).reshape(likelihoods.shape + (1, ) * (jnp.ndim(evalf) - 1)) * _weights_reshaped,
+            evalf * (likelihoods ** 2).reshape(likelihoods.shape + (1,) * (jnp.ndim(evalf) - 1)) * _weights_reshaped,
             axis=0)
-        Efs = jnp.sum(_weights_reshaped * evalf * likelihoods.reshape(likelihoods.shape + (1,) * (jnp.ndim(evalf) - 1)), axis=0)
+        Efs = jnp.sum(_weights_reshaped * evalf * likelihoods.reshape(likelihoods.shape + (1,) * (jnp.ndim(evalf) - 1)),
+                      axis=0)
         Es = jnp.sum(_weights * likelihoods, axis=0)
         Ef = jnp.sum(_weights_reshaped * evalf, axis=0)
         Essq = jnp.sum(_weights * likelihoods ** 2, axis=0)
@@ -90,4 +91,24 @@ def cov_increment_estimate(particles: ArrayLike, weights: ArrayLike, dlambda: Ar
     fXXT = jax.vmap(lambda X: X[:, jnp.newaxis] @ X[jnp.newaxis, :])
     MX = jnp.sum(weights[:, jnp.newaxis] * particles, axis=0)
     return dlambda * dM(fXXT) + 0.5 * dlambda ** 2 * ddM(fXXT) - (dlambda * (
-            MX @ dM(fX).T + dM(fX) @ MX.T) + dlambda ** 2 * (dM(fX) @ dM(fX).T + 0.5 * (MX @ ddM(fX).T + ddM(fX) @ MX.T))), dlambda * dM(fX) + 0.5 * dlambda ** 2 * ddM(fX)
+            MX @ dM(fX).T + dM(fX) @ MX.T) + dlambda ** 2 * (dM(fX) @ dM(fX).T + 0.5 * (
+            MX @ ddM(fX).T + ddM(fX) @ MX.T))), dlambda * dM(fX) + 0.5 * dlambda ** 2 * ddM(fX)
+
+
+def estimate_I(particles: ArrayLike, weights: ArrayLike, log_target_density_fn, dlambda: ArrayLike):
+    # NOT TESTED.
+    r"""
+    Weighted-average estimate of
+         I = \bbE_{z\sim \pi}[J J^{\top}],
+    where J = Jac \log \pi(z).
+    No theoretical proof that this quantity is the one that should be used
+    in the dimensional non-independent setting for \pi.
+    """
+
+    def J(z):
+        return jax.jacobian(log_target_density_fn)(z)
+
+    Jz = J(particles)
+    JzJzT = jnp.einsum('ij,jk->ik', Jz, Jz)
+    estimate = jnp.sum(JzJzT * weights[:, jnp.newaxis, jnp.newaxis], axis=0)
+    return estimate

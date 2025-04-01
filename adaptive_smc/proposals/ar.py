@@ -9,7 +9,8 @@ from adaptive_smc.smc_types import LogDensity
 __all__ = ["build_build_autoregressive_gaussian_proposal",
            "build_autoregressive_gaussian_proposal",
            "build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate",
-           "build_autoregressive_gaussian_proposal_with_cov_estimate"
+           "build_autoregressive_gaussian_proposal_with_cov_estimate",
+           "build_build_uncoupled_autoregressive_gaussian_proposal",
            ]
 
 
@@ -33,6 +34,28 @@ def build_build_autoregressive_gaussian_proposal(mu: ArrayLike, C: ArrayLike):
 
     return _build
 
+
+def build_build_uncoupled_autoregressive_gaussian_proposal(mu: ArrayLike, C: ArrayLike):
+    r"""
+    Construct the build function for uncoupled AR proposal (mix between random-walk and AR)):
+    q(y\mid x) = N(mu + \rho (x-mu), (1-\tau^2)C),
+    where C is a given matrix, and mu given vector.
+    """
+
+    def _build(state: SMCStatebis, _: LogDensity, __: LogDensity, i):
+        rho = state.mh_proposal_parameters.at[0, i - 1].get()
+        tau = state.mh_proposal_parameters.at[1, i - 1].get()
+
+
+        def gaussian_ar_log_proposal(x, y):
+            return jax.scipy.stats.multivariate_normal.logpdf(y, mu + rho * (x-mu), (1 - rho ** 2) * C)
+
+        def gaussian_ar_sampler(key, x):
+            return jax.random.multivariate_normal(key, mu + rho * (x-mu), (1 - rho ** 2) * C)
+
+        return gaussian_ar_log_proposal, gaussian_ar_sampler, jnp.empty(1)
+
+    return _build
 
 def build_autoregressive_gaussian_proposal(state: SMCStatebis, log_tgt_density_fn: LogDensity,
                                            log_likelihood_fn: LogDensity, i: int):

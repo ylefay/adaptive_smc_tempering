@@ -5,17 +5,24 @@ from adaptive_smc.experiments_bis.GLOBAL import *
 from adaptive_smc.problems.gaussian import create_sparse_problem
 
 
-def construct_my_prior_and_target():
+def construct_my_prior_and_target(config):
     r"""
     The prior is a standard Gaussian distribution.
     The target is a Gaussian distribution 0.1N(0, C) + 0.9N(0, C'),
     where C is scaled identity on the latent space otherwise scaled down to tau**2,
     same for C' with a different scaling factor. Orthogonal directions.
+    if latent_dim is set to 0, the target is N(1, tau**2 * I) \beta + (1-\beta) N(0, tau'**2 I)
     """
 
     r"""
     Take the log-likehood function such that the target is correct.
     """
+
+    problem = config.get('problem')
+    latent_dim = problem.get('latent_dim', 0)
+    tau = problem.get('tau')
+    tau2 = problem.get('tau2')
+    dim = config.get('dim')
 
     logpdf1 = create_sparse_problem(dim, latent_dim=latent_dim, mean=-jnp.ones(dim),
                                     scale=1 / (1 / tau ** 2))
@@ -39,9 +46,3 @@ def construct_my_prior_and_target():
     return loglikelihood_fn, base_measure_sampler, logbase_density_fn
 
 
-tau = jnp.sqrt(0.3)
-tau2 = jnp.sqrt(0.6)
-latent_dim = 0  # if set to 0, the target is N(1, tau**2 * I) \beta + (1-\beta) N(0, tau'**2 I)
-loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target()
-length_of_the_tempering_sequence = 10 + dim
-my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)

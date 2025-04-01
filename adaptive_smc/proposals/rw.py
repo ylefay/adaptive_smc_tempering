@@ -2,7 +2,7 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-from adaptive_smc.estimates import cov_estimate, cov_increment_estimate
+from adaptive_smc.estimates import cov_estimate, cov_increment_estimate, estimate_I
 from adaptive_smc.smc_types import LogDensity, SMCStatebis, ProposalBuilder
 
 __all__ = [
@@ -119,3 +119,33 @@ def build_build_gaussian_rw_proposal(C: ArrayLike) -> ProposalBuilder:
         return build_gaussian_rw_proposal(_C)
 
     return build_gaussian_rw_proposal_gamma
+
+
+
+
+def build_gaussian_rwmh_I_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity, __: LogDensity, i: int):
+    """
+    gamma**2/dim in front of the estimated I matrix
+    """
+    gamma = state.mh_proposal_parameters.at[i - 1].get()
+    particles = state.particles
+    dim = particles.shape[-1]
+    log_weights = state.log_weights
+    optimal_scale = gamma ** 2 / dim
+
+    def fun_to_be_called_if_i_greater_than_one():
+        r"""
+        Compute the estimate \bbE J J^t under \pi_{t-1}
+        where J = Jac log \pi_{t-1}
+        """
+        particles_at_i_minus_one = particles.at[i - 1].get().reshape(-1, particles.shape[-1])
+        log_weights_at_i_minus_one = log_weights.at[i - 1].get().reshape(-1, )
+        weights_at_i_minus_one = jnp.exp(log_weights_at_i_minus_one)
+        cov_hat = estimate_I(particles_at_i_minus_one, weights_at_i_minus_one, log_tgt_density_fn)
+        return cov_hat
+
+    C = optimal_scale * fun_to_be_called_if_i_greater_than_one()
+
+    gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler, _ = build_gaussian_rw_proposal(C)
+
+    return gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler, jnp.empty(1)
