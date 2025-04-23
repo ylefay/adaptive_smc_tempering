@@ -27,7 +27,7 @@ setuptools.setup(
         "scikit-learn",
         "matplotlib",
         "particles",
-        "yaml"
+        "pyaml"
     ],
     long_description_content_type="text/markdown",
     keywords="smc tempering gaussian",

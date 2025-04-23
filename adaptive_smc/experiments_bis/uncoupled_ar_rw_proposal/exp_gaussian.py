@@ -6,7 +6,7 @@ import yaml
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
-from adaptive_smc.experiments_bis.mixture_of_gaussians.problem import *
+from adaptive_smc.experiments_bis.gaussians.problem import *
 from adaptive_smc.save_and_read_and_postprocess import save
 from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
 from adaptive_smc.experiments_bis.GLOBAL import *
@@ -66,7 +66,7 @@ def experiment_uncoupled_ar_rw(config, keys):
 
 
 if __name__ == "__main__":
-    yaml_file = "./exp_ar_rw_uncoupled_experiment_uncoupled_ar_rw.yaml"
+    yaml_file = "./exp_gaussian.yaml"
     with open(yaml_file, "r") as file:
         y_config = yaml.load(file, Loader=yaml.FullLoader)[0]
     for name_of_my_config, config in y_config.items():

@@ -2,6 +2,7 @@ import jax
 
 jax.config.update("jax_enable_x64", False)
 jax.config.update("jax_disable_jit", False)
+jax.config.update("jax_debug_nans", False)
 # jax.config.update("default_device", "cpu")
 
 OP_key = jax.random.PRNGKey(0)

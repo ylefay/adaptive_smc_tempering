@@ -23,7 +23,8 @@ class GenericAdaptiveWasteFreeTemperingSMCInefficient:
                  log_likelihood_fn: LogDensity,
                  build_mh_proposal: ProposalBuilder,
                  optimisation: OptimisingProcedure = make_constant(),
-                 criteria_function: CriteriaFunction = square_distance
+                 criteria_function: CriteriaFunction = square_distance,
+                 grid_criteria=jnp.linspace(0, 8, 100),
                  ) -> None:
         self.logbase_density_fn = logbase_density_fn
         self.vmapped_logbase_density_fn = jnp.vectorize(logbase_density_fn, signature='(d)->()')
@@ -36,6 +37,7 @@ class GenericAdaptiveWasteFreeTemperingSMCInefficient:
         self.build_mh_proposal = build_mh_proposal
         self.optimisation = optimisation
         self.criteria_function = criteria_function
+        self.grid_criteria = grid_criteria
 
     def log_tgt_fn(self, lmbda):
         def _log_tgt_fn(x):
@@ -145,8 +147,7 @@ class GenericAdaptiveWasteFreeTemperingSMCInefficient:
         diff_tempering_sequence = jnp.diff(tempering_sequence)
         diff_tempering_sequence = jnp.insert(diff_tempering_sequence, 0, tempering_sequence.at[0].get())
 
-        GRID_CRITERIA = jnp.linspace(0.01, 8, 100)
-        criteria = jnp.zeros((iteration + 1, GRID_CRITERIA.shape[-1]))
+        criteria = jnp.zeros((iteration + 1, *self.grid_criteria.shape[:-1]))
 
         P = num_mcmc_steps + 1
         num_particles = num_parallel_chain * P
@@ -198,7 +199,7 @@ class GenericAdaptiveWasteFreeTemperingSMCInefficient:
         )
 
         to_optimize = self.estimate_expectation_criteria_fun(state, 0)
-        criteria = criteria.at[0].set(jax.vmap(to_optimize)(GRID_CRITERIA))
+        criteria = criteria.at[0].set(jax.vmap(to_optimize)(self.grid_criteria))
 
         new_mh_proposal_parameter = self.optimisation(
             to_optimize,
@@ -354,7 +355,7 @@ class GenericAdaptiveWasteFreeTemperingSMCInefficient:
                 to_optimize,
                 mh_proposal_parameters.at[i - 1].get()
             )
-            criteria = criteria.at[i].set(jax.vmap(to_optimize)(GRID_CRITERIA))
+            criteria = criteria.at[i].set(jax.vmap(to_optimize)(self.grid_criteria))
             mh_proposal_parameters = mh_proposal_parameters.at[i].set(new_mh_proposal_parameter)
 
             new_state = SMCStatebis(
@@ -421,6 +422,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                  criteria_function: CriteriaFunction = square_distance,
                  fun_to_be_applied_to_the_mh_ratio_in_the_criteria = lambda x: x,
                  fun_to_be_applied_to_the_criteria = lambda x: x,
+                 grid_criteria=jnp.linspace(0.01, 8, 100),
                  ) -> None:
         self.logbase_density_fn = logbase_density_fn
         self.vmapped_logbase_density_fn = jnp.vectorize(logbase_density_fn, signature='(d)->()')
@@ -435,6 +437,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         self.criteria_function = criteria_function
         self.fun_to_be_applied_to_the_mh_ratio_in_the_criteria = fun_to_be_applied_to_the_mh_ratio_in_the_criteria
         self.fun_to_be_applied_to_the_criteria = fun_to_be_applied_to_the_criteria
+        self.grid_criteria = grid_criteria
     def log_tgt_fn(self, lmbda):
         def _log_tgt_fn(x):
             return lmbda * self.log_likelihood_fn(x) + self.logbase_density_fn(x)
@@ -465,13 +468,14 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         def log_my_current_proposal(x, y):
             def _zero_proposal(x, y):
                 r"""
-                    q_1'(z, \dd z') = q_1(z, z') x \nu (dd z'), where \nu is the base measure,
+                    q_1'(z, \dd z') = q_1(z, z') x \nu (dd z'), where \nu is the base measure (w.r.t to Lebesgue),
                     where q_1' is the density (w.r.t to Lebesgue) of the first proposal, while q_1 is the
                     density w.r.t to \nu (typically the prior)
-                    Thus at t = 0, the extended weight is \tilde{G}_0(z, z') = G_0(z) q_1(z') = G_0(z) q_1'(z')/\nu(z').
+                    Thus at t = 0, the extended weight is \tilde{G}_0(z, z') = G_0(z) q_1(z, z') = G_0(z) q_1'(z, z')/\nu(z').
                     Thus setting _zero_proposal(x, y) to be nu(y), and computing
                     "log_weights_proposal - log_weights_current_proposal"
-                    is equivalent to compute q_1'(z') - \nu(z')
+                    is equivalent to compute log q_1'(z') - log \nu(z'), that is, log q_1(z, z'),
+                    which is the desired left term in the product for \tilde{G}_0(z, z').
                 """
                 return self.logbase_density_fn(y)
 
@@ -525,7 +529,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
             log_acceptance_ratio = jax.lax.min(0.,
                                                log_current_tgt_density_new_proposed_particles - log_target_density_at_t_fn_particles + log_weights_proposal_inv - log_weights_proposal)
-            acceptance_ratio = jnp.exp(log_acceptance_ratio)
+            acceptance_ratio = jnp.nan_to_num(jnp.exp(log_acceptance_ratio))
 
             return self.fun_to_be_applied_to_the_criteria(jnp.sum(_weights * g * self.fun_to_be_applied_to_the_mh_ratio_in_the_criteria(acceptance_ratio)))
 
@@ -558,8 +562,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         diff_tempering_sequence = jnp.diff(tempering_sequence)
         diff_tempering_sequence = jnp.insert(diff_tempering_sequence, 0, tempering_sequence.at[0].get())
 
-        GRID_CRITERIA = jnp.linspace(0.01, 8, 100)
-        criteria = jnp.zeros((iteration + 1, GRID_CRITERIA.shape[-1]))
+        criteria = jnp.zeros((iteration + 1, *self.grid_criteria.shape[:-1]))
 
         P = num_mcmc_steps + 1
         num_particles = num_parallel_chain * P
@@ -585,7 +588,8 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
         if target_ess:
             _log_weights = self.vmapped_log_likelihood_fn(init_particles)
-            dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0., 1.0, 1e-2, 10)
+            eps = 1e-2
+            dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0.+eps, 1.0, eps, 10)
             dlmbda = jnp.clip(dlmbda, 0., 1.0)
             tempering_sequence = tempering_sequence.at[0].set(dlmbda)
             diff_tempering_sequence = diff_tempering_sequence.at[0].set(dlmbda)
@@ -611,7 +615,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         )
 
         to_optimize = self.estimate_expectation_criteria_fun(state, 0)
-        criteria = criteria.at[0].set(jax.vmap(to_optimize)(GRID_CRITERIA))
+        criteria = criteria.at[0].set(jax.vmap(to_optimize)(self.grid_criteria))
 
         new_mh_proposal_parameter = self.optimisation(
             to_optimize,
@@ -719,8 +723,9 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             if target_ess:
                 _log_weights = self.vmapped_log_likelihood_fn(
                     particles.at[i - 1].get())  # do not use new_particles, this is wrong
-                dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0.,
-                                   1.0 - tempering_sequence.at[i - 1].get(), 1e-2, 10)
+                eps = 1e-2
+                dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0.+eps,
+                                   1.0 - tempering_sequence.at[i - 1].get(), eps, 10)
                 dlmbda = jnp.clip(dlmbda, 0., 1.0 - tempering_sequence.at[i - 1].get())
                 tempering_sequence = tempering_sequence.at[i].set(tempering_sequence.at[i - 1].get() + dlmbda)
                 diff_tempering_sequence = diff_tempering_sequence.at[i].set(dlmbda)
@@ -772,7 +777,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 to_optimize,
                 mh_proposal_parameters.at[i - 1].get()
             )
-            criteria = criteria.at[i].set(jax.vmap(to_optimize)(GRID_CRITERIA))
+            criteria = criteria.at[i].set(jax.vmap(to_optimize)(self.grid_criteria))
             mh_proposal_parameters = mh_proposal_parameters.at[i].set(new_mh_proposal_parameter)
 
             new_state = SMCStatebis(
