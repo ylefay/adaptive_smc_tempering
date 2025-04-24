@@ -68,12 +68,13 @@ def experiment_uncoupled_ar_rw(config, keys):
 if __name__ == "__main__":
     yaml_file = "./exp_ar_rw_uncoupled_experiment_uncoupled_ar_rw.yaml"
     with open(yaml_file, "r") as file:
-        y_config = yaml.load(file, Loader=yaml.FullLoader)[0]
+        y_config = yaml.load(file, Loader=yaml.FullLoader)
     for name_of_my_config, config in y_config.items():
-        sequential_repetitions = config.pop('sequential_repetitions', 1)
-        n_chains = config.get('n_chains')
-        seq_keys = jax.random.split(key, sequential_repetitions)
-        all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
-        _, key = jax.random.split(seq_keys.at[-1].get())
-        for keys in all_keys:
-            experiment_uncoupled_ar_rw(config, keys)
+        if config.get('run', True):
+            sequential_repetitions = config.pop('sequential_repetitions', 1)
+            n_chains = config.get('n_chains')
+            seq_keys = jax.random.split(key, sequential_repetitions)
+            all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
+            _, key = jax.random.split(seq_keys.at[-1].get())
+            for keys in all_keys:
+                experiment_uncoupled_ar_rw(config, keys)

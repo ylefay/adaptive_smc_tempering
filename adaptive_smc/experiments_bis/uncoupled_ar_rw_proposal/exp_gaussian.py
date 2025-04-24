@@ -6,13 +6,14 @@ import yaml
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
+from adaptive_smc.experiments_bis.GLOBAL import *
 from adaptive_smc.experiments_bis.gaussians.problem import *
 from adaptive_smc.save_and_read_and_postprocess import save
 from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
-from adaptive_smc.experiments_bis.GLOBAL import *
 
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)
+
 
 def default_title(prefix=''):
     now = datetime.now()
@@ -68,12 +69,13 @@ def experiment_uncoupled_ar_rw(config, keys):
 if __name__ == "__main__":
     yaml_file = "./exp_gaussian.yaml"
     with open(yaml_file, "r") as file:
-        y_config = yaml.load(file, Loader=yaml.FullLoader)[0]
+        y_config = yaml.load(file, Loader=yaml.FullLoader)
     for name_of_my_config, config in y_config.items():
-        sequential_repetitions = config.pop('sequential_repetitions', 1)
-        n_chains = config.get('n_chains')
-        seq_keys = jax.random.split(key, sequential_repetitions)
-        all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
-        _, key = jax.random.split(seq_keys.at[-1].get())
-        for keys in all_keys:
-            experiment_uncoupled_ar_rw(config, keys)
+        if config.get('run', True):
+            sequential_repetitions = config.pop('sequential_repetitions', 1)
+            n_chains = config.get('n_chains')
+            seq_keys = jax.random.split(key, sequential_repetitions)
+            all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
+            _, key = jax.random.split(seq_keys.at[-1].get())
+            for keys in all_keys:
+                experiment_uncoupled_ar_rw(config, keys)
