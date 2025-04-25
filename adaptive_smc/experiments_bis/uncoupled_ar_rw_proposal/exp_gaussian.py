@@ -6,7 +6,6 @@ import yaml
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
-from adaptive_smc.experiments_bis.GLOBAL import *
 from adaptive_smc.experiments_bis.gaussians.problem import *
 from adaptive_smc.save_and_read_and_postprocess import save
 from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC

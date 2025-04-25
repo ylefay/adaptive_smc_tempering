@@ -14,7 +14,7 @@ config1:
 config_dim6:
     num_parallel_chain: 64
     num_mcmc_steps: 1600
-    sequential_repetitions: 1
+    sequential_repetitions: 5
     n_chains: 1
     target_ess: 0.9
     dim: 6

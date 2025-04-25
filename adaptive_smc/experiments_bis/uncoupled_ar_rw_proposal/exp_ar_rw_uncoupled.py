@@ -24,7 +24,7 @@ def default_title(prefix=''):
 def experiment_uncoupled_ar_rw(config, keys):
     dim = config.get('dim')
 
-    length_of_the_tempering_sequence = 10 + dim
+    length_of_the_tempering_sequence = 20 + dim
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
