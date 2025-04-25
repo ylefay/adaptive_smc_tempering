@@ -147,7 +147,7 @@ class GenericAdaptiveWasteFreeTemperingSMCInefficient:
         diff_tempering_sequence = jnp.diff(tempering_sequence)
         diff_tempering_sequence = jnp.insert(diff_tempering_sequence, 0, tempering_sequence.at[0].get())
 
-        criteria = jnp.zeros((iteration + 1, *self.grid_criteria.shape[:-1]))
+        criteria = jnp.zeros((iteration + 1, self.grid_criteria.shape[0]))
 
         P = num_mcmc_steps + 1
         num_particles = num_parallel_chain * P
@@ -562,7 +562,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         diff_tempering_sequence = jnp.diff(tempering_sequence)
         diff_tempering_sequence = jnp.insert(diff_tempering_sequence, 0, tempering_sequence.at[0].get())
 
-        criteria = jnp.zeros((iteration + 1, *self.grid_criteria.shape[:-1]))
+        criteria = jnp.zeros((iteration + 1, self.grid_criteria.shape[0]))
 
         P = num_mcmc_steps + 1
         num_particles = num_parallel_chain * P

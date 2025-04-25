@@ -4,6 +4,7 @@ from datetime import datetime
 import jax.numpy as jnp
 import jax.random
 import yaml
+
 from adaptive_smc import optimise
 from adaptive_smc import proposals
 from adaptive_smc.experiments_bis.gaussians.problem import construct_my_prior_and_target
@@ -13,12 +14,12 @@ from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)
 
+
 def default_title(prefix=''):
     now = datetime.now()
 
     output_path = f"{prefix}_{os.path.basename(__file__)}_{now.strftime("%m%D%H%M%S").replace("/", "")}.pkl"
     return output_path
-
 
 
 def experiment_ar(config, keys):
@@ -32,7 +33,6 @@ def experiment_ar(config, keys):
 
     length_of_the_tempering_sequence = 10 + dim
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
-
 
     params_optimization_method = {"grid": jnp.linspace(0, 0.99, 100)}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
@@ -55,7 +55,7 @@ def experiment_ar(config, keys):
         optimization_method = None
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               my_proposal, optimization_method)
+                                               my_proposal, optimization_method, grid_criteria=params_optimization_method['grid'])
 
     @jax.vmap
     def wrapper_smc(key):
@@ -97,7 +97,7 @@ def experiment_rwmh(config, keys):
         optimization_method = None
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               my_proposal, optimization_method)
+                                               my_proposal, optimization_method, grid_criteria=params_optimization_method['grid'])
 
     @jax.vmap
     def wrapper_smc(key):
@@ -110,24 +110,28 @@ def experiment_rwmh(config, keys):
 if __name__ == "__main__":
     yaml_file = "./exp_rw_vs_ar_gaussian_to_gaussian.yaml"
     with open(yaml_file, "r") as file:
-        y_config = yaml.load(file, Loader=yaml.FullLoader)[0]
+        y_config = yaml.load(file, Loader=yaml.FullLoader)
+
     for name_of_my_config, config in y_config.items():
-        sequential_repetitions = config.pop('sequential_repetitions', 1)
-        n_chains = config.get('n_chains')
-        seq_keys = jax.random.split(key, sequential_repetitions)
-        all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
-        _, key = jax.random.split(seq_keys.at[-1].get())
-        for keys in all_keys:
-            experiment_ar(config, keys)
+        if config.get('run', True):
+            sequential_repetitions = config.pop('sequential_repetitions', 1)
+            n_chains = config.get('n_chains')
+            seq_keys = jax.random.split(key, sequential_repetitions)
+            all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
+            _, key = jax.random.split(seq_keys.at[-1].get())
+            for keys in all_keys:
+                experiment_ar(config, keys)
 
     yaml_file = "./exp_rw_vs_ar_gaussian_to_gaussian.yaml"
     with open(yaml_file, "r") as file:
-        y_config = yaml.load(file, Loader=yaml.FullLoader)[0]
+        y_config = yaml.load(file, Loader=yaml.FullLoader)
+
     for name_of_my_config, config in y_config.items():
-        sequential_repetitions = config.pop('sequential_repetitions', 1)
-        n_chains = config.get('n_chains')
-        seq_keys = jax.random.split(key, sequential_repetitions)
-        all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
-        _, key = jax.random.split(seq_keys.at[-1].get())
-        for keys in all_keys:
-            experiment_rwmh(config, keys)
+        if config.get('run', True):
+            sequential_repetitions = config.pop('sequential_repetitions', 1)
+            n_chains = config.get('n_chains')
+            seq_keys = jax.random.split(key, sequential_repetitions)
+            all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
+            _, key = jax.random.split(seq_keys.at[-1].get())
+            for keys in all_keys:
+                experiment_rwmh(config, keys)

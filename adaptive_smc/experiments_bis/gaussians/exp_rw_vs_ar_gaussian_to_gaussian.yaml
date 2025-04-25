@@ -1,4 +1,5 @@
-- config1:
+config1:
+    run: No
     num_parallel_chain: 16
     num_mcmc_steps: 4000
     sequential_repetitions: 1
@@ -10,3 +11,18 @@
     problem:
       tau: 0.31622776601683794 # sqrt(0.1)
       latent_dim: 0
+
+
+config_dim6:
+    run: Yes
+    num_parallel_chain: 64
+    num_mcmc_steps: 1600
+    sequential_repetitions: 1
+    n_chains: 5
+    target_ess: 0.9
+    dim: 6
+    OUTPUT_PATH: "./output/"
+    prefix: "config_dim6"
+    problem:
+        latent_dim: 0
+        tau: 0.5477225575051661

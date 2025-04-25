@@ -15,6 +15,7 @@ from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)
 
+
 def default_title(prefix=''):
     now = datetime.now()
 
@@ -31,7 +32,7 @@ def experiment_mixture_ar_rwm(config, keys):
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
 
-    length_of_the_tempering_sequence = 10 + dim
+    length_of_the_tempering_sequence = 20 + dim
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
@@ -58,7 +59,8 @@ def experiment_mixture_ar_rwm(config, keys):
         optimization_method = None
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               my_proposal, optimization_method)
+                                               my_proposal, optimization_method,
+                                               grid_criteria=params_optimization_method['grid'])
 
     @jax.vmap
     def wrapper_smc(key):
@@ -77,7 +79,7 @@ def experiment_ar(config, keys):
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
 
-    length_of_the_tempering_sequence = 10 + dim
+    length_of_the_tempering_sequence = 20 + dim
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
@@ -101,7 +103,8 @@ def experiment_ar(config, keys):
         optimization_method = None
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               my_proposal, optimization_method)
+                                               my_proposal, optimization_method,
+                                               grid_criteria=params_optimization_method['grid'])
 
     @jax.vmap
     def wrapper_smc(key):
@@ -111,7 +114,7 @@ def experiment_ar(config, keys):
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
 
 
-def experiment_rwm(config, keys):
+def experiment_rw(config, keys):
     dim = config.get('dim')
 
     target_ess = config.get('target_ess')
@@ -120,7 +123,48 @@ def experiment_rwm(config, keys):
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
 
-    length_of_the_tempering_sequence = 10 + dim
+    length_of_the_tempering_sequence = 20 + dim
+    my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
+
+    loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
+
+    params_optimization_method = {"grid": jnp.linspace(1.0, 4, 500)}
+
+    init_param = jnp.array([2.38])
+    config.update(
+        {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
+         "proposal": "build_build_gaussian_rw_proposal",
+         "tempering_sequence": my_tempering_sequence,
+         "init_param": init_param})
+
+    my_proposal = getattr(proposals, config['proposal'])(jnp.eye(dim))
+    if config['optimization_method']:
+        optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
+    else:
+        optimization_method = None
+
+    smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
+                                               my_proposal, optimization_method,
+                                               grid_criteria=params_optimization_method['grid'])
+
+    @jax.vmap
+    def wrapper_smc(key):
+        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
+
+    res = wrapper_smc(keys)
+    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
+
+
+def experiment_rwmh(config, keys):
+    dim = config.get('dim')
+
+    target_ess = config.get('target_ess')
+    num_parallel_chain = config.get('num_parallel_chain')
+    num_mcmc_steps = config.get('num_mcmc_steps')
+
+    optimization_method_str = "make_optimize_within_a_fixed_grid"
+
+    length_of_the_tempering_sequence = 20 + dim
     my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
@@ -143,7 +187,8 @@ def experiment_rwm(config, keys):
         optimization_method = None
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               my_proposal, optimization_method)
+                                               my_proposal, optimization_method,
+                                               grid_criteria=params_optimization_method['grid'])
 
     @jax.vmap
     def wrapper_smc(key):
@@ -157,36 +202,54 @@ if __name__ == "__main__":
 
     yaml_file = "./exp_rwmh_mix_ar.yaml"
     with open(yaml_file, "r") as file:
-        y_config = yaml.load(file, Loader=yaml.FullLoader)[0]
+        y_config = yaml.load(file, Loader=yaml.FullLoader)
     for name_of_my_config, config in y_config.items():
-        sequential_repetitions = config.pop('sequential_repetitions', 1)
-        n_chains = config.get('n_chains')
-        seq_keys = jax.random.split(key, sequential_repetitions)
-        all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
-        _, key = jax.random.split(seq_keys.at[-1].get())
-        for keys in all_keys:
-            experiment_mixture_ar_rwm(config, keys)
+        if config.get('run', True):
+            sequential_repetitions = config.pop('sequential_repetitions', 1)
+            n_chains = config.get('n_chains')
+            seq_keys = jax.random.split(key, sequential_repetitions)
+            all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
+            _, key = jax.random.split(seq_keys.at[-1].get())
+            for keys in all_keys:
+                # experiment_mixture_ar_rwm(config, keys)
+                pass
 
     yaml_file = "./exp_rwmh_mix_ar.yaml"
     with open(yaml_file, "r") as file:
-        y_config = yaml.load(file, Loader=yaml.FullLoader)[0]
+        y_config = yaml.load(file, Loader=yaml.FullLoader)
     for name_of_my_config, config in y_config.items():
-        sequential_repetitions = config.pop('sequential_repetitions', 1)
-        n_chains = config.get('n_chains')
-        seq_keys = jax.random.split(key, sequential_repetitions)
-        all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
-        _, key = jax.random.split(seq_keys.at[-1].get())
-        for keys in all_keys:
-            experiment_ar(config, keys)
+        if config.get('run', True):
+            sequential_repetitions = config.pop('sequential_repetitions', 1)
+            n_chains = config.get('n_chains')
+            seq_keys = jax.random.split(key, sequential_repetitions)
+            all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
+            _, key = jax.random.split(seq_keys.at[-1].get())
+            for keys in all_keys:
+                experiment_ar(config, keys)
 
     yaml_file = "./exp_rwmh_mix_ar.yaml"
     with open(yaml_file, "r") as file:
-        y_config = yaml.load(file, Loader=yaml.FullLoader)[0]
+        y_config = yaml.load(file, Loader=yaml.FullLoader)
     for name_of_my_config, config in y_config.items():
-        sequential_repetitions = config.pop('sequential_repetitions', 1)
-        n_chains = config.get('n_chains')
-        seq_keys = jax.random.split(key, sequential_repetitions)
-        all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
-        _, key = jax.random.split(seq_keys.at[-1].get())
-        for keys in all_keys:
-            experiment_rwm(config, keys)
+        if config.get('run', True):
+            sequential_repetitions = config.pop('sequential_repetitions', 1)
+            n_chains = config.get('n_chains')
+            seq_keys = jax.random.split(key, sequential_repetitions)
+            all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
+            _, key = jax.random.split(seq_keys.at[-1].get())
+            for keys in all_keys:
+                # experiment_rwmh(config, keys)
+                pass
+
+    yaml_file = "./exp_rwmh_mix_ar.yaml"
+    with open(yaml_file, "r") as file:
+        y_config = yaml.load(file, Loader=yaml.FullLoader)
+    for name_of_my_config, config in y_config.items():
+        if config.get('run', True):
+            sequential_repetitions = config.pop('sequential_repetitions', 1)
+            n_chains = config.get('n_chains')
+            seq_keys = jax.random.split(key, sequential_repetitions)
+            all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
+            _, key = jax.random.split(seq_keys.at[-1].get())
+            for keys in all_keys:
+                experiment_rw(config, keys)

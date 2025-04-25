@@ -31,7 +31,7 @@ def experiment_uncoupled_ar_rw(config, keys):
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
-    rho_grid = jnp.linspace(0, 0.99, 25)
+    rho_grid = jnp.linspace(0, 1, 25)
     tau_grid = jnp.linspace(0.1, 1, 25)
     params_grid = jnp.array([[x, y] for x in rho_grid for y in tau_grid])
     params_optimization_method = {"grid": params_grid}
