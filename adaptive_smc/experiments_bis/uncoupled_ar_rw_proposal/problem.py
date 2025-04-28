@@ -12,7 +12,7 @@ def construct_my_prior_and_target(config):
     """
 
     r"""
-    Take the log-likehood function such that the target is N(0, C),
+    Take the log-likehood function such that the target is N((1, ..., 1), C),
     with C = (1, ..., 1, \tau^2, ..., \tau^2)
     """
 
@@ -21,14 +21,14 @@ def construct_my_prior_and_target(config):
     dim = config.get('dim')
     latent_dim = config_problem.get('latent_dim')
 
-    loglikelihood_fn = create_sparse_problem(dim, latent_dim=latent_dim, mean=jnp.zeros(dim),
+    loglikelihood_fn = create_sparse_problem(dim, latent_dim=latent_dim, mean=jnp.ones(dim),
                                              scale=1 / (1 / tau ** 2 - 1))
 
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, jnp.zeros(dim), jnp.eye(dim))
 
     def logbase_density_fn(x):
-        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim), cov=jnp.eye(dim))
+        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.ones(dim), cov=jnp.eye(dim))
 
     return loglikelihood_fn, base_measure_sampler, logbase_density_fn
 
