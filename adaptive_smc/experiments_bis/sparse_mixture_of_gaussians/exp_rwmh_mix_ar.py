@@ -32,8 +32,8 @@ def experiment_mixture_ar_rwm(config, keys):
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
 
-    length_of_the_tempering_sequence = 20 + dim
-    my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
+    tempering_length = config.get('tempering_length', 20 + dim)
+    my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
 
@@ -79,8 +79,8 @@ def experiment_ar(config, keys):
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
 
-    length_of_the_tempering_sequence = 20 + dim
-    my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
+    tempering_length = config.get('tempering_length', 20 + dim)
+    my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
 
@@ -123,8 +123,8 @@ def experiment_rw(config, keys):
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
 
-    length_of_the_tempering_sequence = 20 + dim
-    my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
+    tempering_length = config.get('tempering_length', 20 + dim)
+    my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
 
@@ -164,8 +164,8 @@ def experiment_rwmh(config, keys):
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
 
-    length_of_the_tempering_sequence = 20 + dim
-    my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
+    tempering_length = config.get('tempering_length', 20 + dim)
+    my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
 

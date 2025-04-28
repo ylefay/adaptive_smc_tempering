@@ -6,7 +6,7 @@ import yaml
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
-from adaptive_smc.experiments_bis.gaussians.problem import *
+from adaptive_smc.experiments_bis.uncoupled_ar_rw_proposal.problem import *
 from adaptive_smc.save_and_read_and_postprocess import save
 from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
 
@@ -24,14 +24,14 @@ def default_title(prefix=''):
 def experiment_uncoupled_ar_rw(config, keys):
     dim = config.get('dim')
 
-    length_of_the_tempering_sequence = 10 + dim
-    my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
+    tempering_length = config.get('tempering_length', 10 + dim)
+    my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
-    rho_grid = jnp.linspace(0, 0.99, 25)
-    tau_grid = jnp.linspace(0.1, 1, 25)
+    rho_grid = jnp.linspace(0, 0.99, 5)
+    tau_grid = jnp.linspace(0.1, 1, 5)
     params_grid = jnp.array([[x, y] for x in rho_grid for y in tau_grid])
     params_optimization_method = {"grid": params_grid}
 

@@ -1,4 +1,4 @@
-- config1:
+config1:
     num_parallel_chain: 16
     num_mcmc_steps: 4000
     sequential_repetitions: 1

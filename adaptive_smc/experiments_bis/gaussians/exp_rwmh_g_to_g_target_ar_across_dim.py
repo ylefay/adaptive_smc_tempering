@@ -30,8 +30,8 @@ def experiment_rwmh(config, keys, dim):
     num_parallel_chain = config.get('num_parallel_chain')
     num_mcmc_steps = config.get('num_mcmc_steps')
 
-    length_of_the_tempering_sequence = 10 + dim
-    my_tempering_sequence = jnp.linspace(0, 1, length_of_the_tempering_sequence)
+    tempering_length = config.get('tempering_length', 10 + dim)
+    my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
     config['dim'] = dim
 
@@ -72,13 +72,15 @@ def experiment_rwmh(config, keys, dim):
 if __name__ == "__main__":
     yaml_file = "exp_rwmh_g_to_g_target_ar_across_dim.yaml"
     with open(yaml_file, "r") as file:
-        y_config = yaml.load(file, Loader=yaml.FullLoader)[0]
+        y_config = yaml.load(file, Loader=yaml.FullLoader)
     for name_of_my_config, config in y_config.items():
-        sequential_repetitions = config.pop('sequential_repetitions', 1)
-        n_chains = config.get('n_chains')
-        seq_keys = jax.random.split(key, sequential_repetitions)
-        all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
-        _, key = jax.random.split(seq_keys.at[-1].get())
-        for keys in all_keys:
-            for dim in range(1, 11):
-                experiment_rwmh(config, keys, dim)
+        if config.get('run', True):
+            sequential_repetitions = config.pop('sequential_repetitions', 1)
+            n_chains = config.get('n_chains')
+            seq_keys = jax.random.split(key, sequential_repetitions)
+            all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
+            _, key = jax.random.split(seq_keys.at[-1].get())
+            for keys in all_keys:
+                for dim in range(1, 11):
+                    experiment_rwmh(config, keys, dim)
+
