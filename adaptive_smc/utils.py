@@ -1,10 +1,37 @@
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Callable, Union
 
 import jax
 import jax.random
 from jax import numpy as jnp, Array
 from jax.typing import ArrayLike
 
+
+
+def apply_vmap_batch(fun: Callable[[ArrayLike], ArrayLike], arg: ArrayLike, batch: Union[int, jnp.inf],
+                     output_shape=()):
+    """
+    Given a vmappable function, apply it to arg in batch of size batch.
+    """
+    if arg.ndim == 1:
+        shape = (arg.shape[0], *output_shape)
+    else:
+        shape = (*arg.shape[:-1], *output_shape)
+    res = jnp.empty(shape)
+
+    if batch > res.shape[0]:
+        return fun(arg)
+
+    def iter(i, res):
+        my_arg = jax.lax.dynamic_slice(arg, (i * batch, *(0,) * (arg.ndim - 1)), (batch, *arg.shape[1:]))
+        _res = fun(my_arg)
+        res = jax.lax.dynamic_update_slice(res, _res, (i * batch, *(0, ) * (res.ndim - 1)))
+        return res
+
+    res = jax.lax.cond(res.shape[0] // batch > 0,
+                       lambda _: jax.lax.fori_loop(0, res.shape[0] // batch, iter, res),
+                       lambda _: res, None)
+    res = res.at[res.shape[0] // batch * batch:].set(fun(arg.at[res.shape[0] // batch * batch:].get()))
+    return res
 
 def normalize_log_weights(log_weights: ArrayLike) -> Tuple[ArrayLike, float]:
     """

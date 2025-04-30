@@ -1,20 +1,22 @@
-from typing import Callable, Tuple
+from typing import Callable, Tuple, Union
 
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
 from adaptive_smc.smc_types import OptimisingProcedure
+from adaptive_smc.utils import apply_vmap_batch
 
 
-def make_optimize_within_a_fixed_grid(grid: ArrayLike) -> OptimisingProcedure:
+def make_optimize_within_a_fixed_grid(grid: ArrayLike, batch_size=jnp.inf) -> OptimisingProcedure:
     """
-    Constructing a maximisation procedure of a function over a unidimensional grid.
-    All the points outside the interval defined by the minmax tuple are flattened.
+    Constructing a maximisation procedure of a function over a grid.
+    We use apply_vmap_batch to apply the function to the grid in batches of fixed sizes (by default inf)
     """
 
     def optimize_within_a_grid(func: Callable[[ArrayLike], ArrayLike], _: ArrayLike) -> ArrayLike:
-        fun_applied_to_grid = jax.vmap(func)(grid)
+        output_shape = func(grid.at[0].get()).shape
+        fun_applied_to_grid = apply_vmap_batch(jax.vmap(func), grid, batch_size, output_shape)
         return grid.at[jnp.argmax(fun_applied_to_grid, keepdims=True).at[0].get()].get()
 
     return optimize_within_a_grid

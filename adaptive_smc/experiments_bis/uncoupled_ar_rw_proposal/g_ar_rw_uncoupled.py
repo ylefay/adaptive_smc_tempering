@@ -17,6 +17,7 @@ _, key = jax.random.split(OP_key)
 rho_grid = jnp.linspace(0, 1, 25)
 tau_grid = jnp.linspace(0.01, 2, 25)
 
+
 def default_title(prefix=''):
     now = datetime.now()
 
@@ -36,7 +37,7 @@ def experiment_ar(config, keys):
     tempering_length = config.get('tempering_length', 10 + dim)
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
-    params_optimization_method = {"grid": rho_grid}
+    params_optimization_method = {"grid": rho_grid, "batch_size": 500}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
@@ -57,8 +58,9 @@ def experiment_ar(config, keys):
         optimization_method = None
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               my_proposal, optimization_method, grid_criteria=params_optimization_method['grid'],
-                                               batch_size_criteria = 500)
+                                               my_proposal, optimization_method,
+                                               grid_criteria=params_optimization_method['grid'],
+                                               batch_size_criteria=500)
 
     @jax.vmap
     def wrapper_smc(key):
@@ -82,7 +84,7 @@ def experiment_rw(config, keys):
 
     scaltedparameter_grid = tau_grid * jnp.sqrt(dim)
 
-    params_optimization_method = {"grid": scaltedparameter_grid}
+    params_optimization_method = {"grid": scaltedparameter_grid, "batch_size": 500}
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
     tempering_length = config.get('tempering_length', 10 + dim)
@@ -102,8 +104,9 @@ def experiment_rw(config, keys):
         optimization_method = None
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               my_proposal, optimization_method, grid_criteria=params_optimization_method['grid'],
-                                               batch_size_criteria = 500)
+                                               my_proposal, optimization_method,
+                                               grid_criteria=params_optimization_method['grid'],
+                                               batch_size_criteria=500)
 
     @jax.vmap
     def wrapper_smc(key):
@@ -111,7 +114,6 @@ def experiment_rw(config, keys):
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
-
 
 
 def experiment_uncoupled_ar_rw(config, keys):
@@ -124,7 +126,7 @@ def experiment_uncoupled_ar_rw(config, keys):
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     params_grid = jnp.array([[x, y] for x in rho_grid for y in tau_grid])
-    params_optimization_method = {"grid": params_grid}
+    params_optimization_method = {"grid": params_grid, "batch_size": 500}
 
     num_parallel_chain = config.get('num_parallel_chain')
     num_mcmc_steps = config.get('num_mcmc_steps')
@@ -146,7 +148,8 @@ def experiment_uncoupled_ar_rw(config, keys):
         optimization_method = None
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               my_proposal, optimization_method, grid_criteria=params_grid, batch_size_criteria=500)
+                                               my_proposal, optimization_method, grid_criteria=params_grid,
+                                               batch_size_criteria=500)
 
     @jax.vmap
     def wrapper_smc(key):
@@ -154,6 +157,7 @@ def experiment_uncoupled_ar_rw(config, keys):
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config['prefix']))
+
 
 if __name__ == "__main__":
     yaml_file = "g_ar_rw_uncoupled.yaml"
