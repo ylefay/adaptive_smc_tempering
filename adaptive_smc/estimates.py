@@ -3,8 +3,10 @@ from typing import Callable, Tuple
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
+from particles.distributions import Gamma
 
 from adaptive_smc.smc_types import LogDensity
+from adaptive_smc.utils import unvec, vec
 
 
 def cov_estimate(particles: ArrayLike, weights: ArrayLike) -> Tuple[ArrayLike, ArrayLike]:
@@ -112,3 +114,30 @@ def estimate_I(particles: ArrayLike, weights: ArrayLike, log_target_density_fn, 
     JzJzT = jnp.einsum('ij,jk->ik', Jz, Jz)
     estimate = jnp.sum(JzJzT * weights[:, jnp.newaxis, jnp.newaxis], axis=0)
     return estimate
+
+
+def inverse_FIM_gaussian_approx(particles: ArrayLike, weights: ArrayLike, log_target_density_fn, dlambda: ArrayLike):
+    # NOT TESTED
+    r"""
+    gradient-free inverse FIM estimate under Gaussian approximation
+    """
+    dim = particles.shape[-1]
+
+    @jax.vmap
+    def modified_statistic(z):
+        vecZZt = vec(z[:, jnp.newaxis] @ z[:, jnp.newaxis].T)
+        vecZZt = vecZZt.at[0::(dim + 1)].set((vecZZt.at[0::(dim + 1)].get() - 1) / jnp.sqrt(2))
+        vectriuunvecvecZZt = vec(unvec(vecZZt, (dim, dim)).at[jnp.triu_indices(dim)].get())
+        return jnp.concatenate([z, vectriuunvecvecZZt, jnp.array([1.])])
+
+    cov, mu = cov_estimate(particles, weights)
+    chol_cov = jax.scipy.linalg.cholesky(cov)
+    gamma = jnp.mean(modified_statistic(particles) * log_target_density_fn(particles), axis=0)
+    Gamma_matrix = jnp.diag(jnp.sqrt(2) /2* gamma.at[dim::].get())
+    mask = ~jnp.isin(jnp.arange(0, dim*dim-1), jnp.arange(0, dim*dim-1, dim))
+
+    Gamma_matrix = Gamma_matrix.at[jnp.triu_indices(dim)].set(
+        gamma.at[mask].get()
+    )
+    Gamma_matrix = Gamma_matrix.T + Gamma_matrix
+    return chol_cov.T @ jnp.linalg.inv(Gamma_matrix) @ chol_cov, mu

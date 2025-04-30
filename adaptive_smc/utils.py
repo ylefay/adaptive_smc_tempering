@@ -1,4 +1,4 @@
-from typing import Tuple
+from typing import Tuple, Optional
 
 import jax
 import jax.random
@@ -26,3 +26,18 @@ def log_ess(delta: float, log_weights: Array) -> float:
     log_ess_scaled = log_ess - jnp.log(N_particles)
     return log_ess_scaled
 
+
+
+def vec(X: ArrayLike) -> Array:
+    """
+    Vectorization of a matrix.
+    """
+    return X.reshape(-1, order='F')
+
+def unvec(vecX: ArrayLike, shape=Optional[Tuple[int, int]]) -> Array:
+    """
+    Invert the previous operation
+    """
+    if shape is None:
+        shape = (int(vecX.shape[0] ** 0.5), int(vecX.shape[0] ** 0.5))
+    return vecX.reshape(shape, order='F')
