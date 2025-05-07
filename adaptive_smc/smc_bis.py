@@ -148,7 +148,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                tempering_sequence: ArrayLike,
                target_ess: Optional[float] = None,
                init_other: Optional[ArrayLike] = jnp.empty(1),
-               save_disk_mem: Bool = False) -> Tuple[
+               save_disk_mem: bool = False) -> Tuple[
         ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
         r"""
 
