@@ -2,7 +2,7 @@ from typing import Tuple, Optional
 
 import jax.random
 from blackjax.smc.resampling import multinomial
-from adaptive_smc.utils import dichotomy
+from blackjax.smc.solver import dichotomy
 from jax import numpy as jnp
 from jax.typing import ArrayLike
 
@@ -147,7 +147,8 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                initial_mh_proposal_parameter: ArrayLike,
                tempering_sequence: ArrayLike,
                target_ess: Optional[float] = None,
-               init_other: Optional[ArrayLike] = jnp.empty(1)) -> Tuple[
+               init_other: Optional[ArrayLike] = jnp.empty(1),
+               save_disk_mem: Bool = False) -> Tuple[
         ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
         r"""
 
@@ -439,6 +440,8 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                                   log_normalizations,
                                   others
                               ))
+        if save_disk_mem:
+            return None, None, None, mh_proposal_parameters, None, criteria, tempering_sequence, None, log_normalizations, None
         return couple_particles, log_weights_couple, log_weights, mh_proposal_parameters, acceptance_bools, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others
 
     def low_memory_estimate_expectation_criteria_fun(self, state, i):
