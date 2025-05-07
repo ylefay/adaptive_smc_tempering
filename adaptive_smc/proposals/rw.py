@@ -18,7 +18,6 @@ def build_gaussian_rw_proposal(C: ArrayLike):
     """
     Gaussian RW with fixed covariance matrix C
     """
-
     def gaussian_rwmh_cov_log_proposal(x, y):
         return jax.scipy.stats.multivariate_normal.logpdf(y, x, C)
 

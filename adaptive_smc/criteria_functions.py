@@ -27,6 +27,6 @@ def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCStatebis, i: int) -> Array
         else:
             cov = jnp.var(particles.at[i - 1].get().reshape((particles.shape[1] * particles.shape[2]),
                                                             dim), axis=0).reshape((1, 1))
-        return jnp.einsum('j,k,jk->', x - y, x - y, jnp.linalg.inv(cov))
+        return jnp.einsum('...j,...k,...jk->...', x - y, x - y, jnp.linalg.inv(cov))
 
     return jax.lax.select(i == 0, jnp.sum(jnp.square(x - y), axis=-1), _mahalanobis(x, y))

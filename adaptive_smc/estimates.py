@@ -128,7 +128,7 @@ def inverse_FIM_gaussian_approx(particles: ArrayLike, weights: ArrayLike, log_ta
         vecZZt = vec(z[:, jnp.newaxis] @ z[:, jnp.newaxis].T)
         vecZZt = vecZZt.at[0::(dim + 1)].set((vecZZt.at[0::(dim + 1)].get() - 1) / jnp.sqrt(2))
         vectriuunvecvecZZt = vec(unvec(vecZZt, (dim, dim)).at[jnp.triu_indices(dim)].get())
-        return jnp.concatenate([z, vectriuunvecvecZZt, jnp.array([1.])])
+        return vectriuunvecvecZZt
 
     cov, mu = cov_estimate(particles, weights)
     chol_cov = jax.scipy.linalg.cholesky(cov)
@@ -140,4 +140,4 @@ def inverse_FIM_gaussian_approx(particles: ArrayLike, weights: ArrayLike, log_ta
         gamma.at[mask].get()
     )
     Gamma_matrix = Gamma_matrix.T + Gamma_matrix
-    return chol_cov.T @ jnp.linalg.inv(Gamma_matrix) @ chol_cov, mu
+    return - chol_cov.T @ jnp.linalg.inv(Gamma_matrix) @ chol_cov, mu

@@ -1,5 +1,5 @@
 config_dim1:
-    run: Yes
+    run: No
     num_parallel_chain: 100
     num_mcmc_steps: 1000
     sequential_repetitions: 1
@@ -25,3 +25,18 @@ config_dim5:
     problem:
         latent_dim: 0
         tau: 0.5477225575051661
+
+
+config_dim6_tausmall:
+    run: Yes
+    num_parallel_chain: 100
+    num_mcmc_steps: 100
+    sequential_repetitions: 1
+    n_chains: 1
+    target_ess: 0.9
+    dim: 2
+    OUTPUT_PATH: "./output_dim6_mean0_2000/"
+    prefix: "config_dim6"
+    problem:
+        latent_dim: 1
+        tau: 0.3477225575051661

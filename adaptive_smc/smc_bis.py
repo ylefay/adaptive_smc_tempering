@@ -2,7 +2,7 @@ from typing import Tuple, Optional
 
 import jax.random
 from blackjax.smc.resampling import multinomial
-from blackjax.smc.solver import dichotomy
+from adaptive_smc.utils import dichotomy
 from jax import numpy as jnp
 from jax.typing import ArrayLike
 
