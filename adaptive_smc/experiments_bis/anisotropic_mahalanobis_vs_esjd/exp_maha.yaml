@@ -10,5 +10,5 @@ dim10:
   prefix: "dim10"
   problem:
     latent_dim: 1
-    tau: 0.3477225575051661
+    tau: 0.393919298579168
     freedom: 5

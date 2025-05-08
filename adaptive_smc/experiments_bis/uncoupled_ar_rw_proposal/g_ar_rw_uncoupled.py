@@ -157,7 +157,7 @@ def experiment_uncoupled_ar_rw(config, keys):
                                                batch_size_criteria=100)
 
     @jax.vmap
-    def qwrapper_smc(key):
+    def wrapper_smc(key):
         return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
                           save_disk_mem=True)
 

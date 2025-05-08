@@ -10,7 +10,7 @@ config_dim1:
     prefix: "config_dim1"
     problem:
         latent_dim: 0
-        tau: 0.5477225575051661
+        tau: 0.393919298579168
 
 config_dim5:
     run: No
@@ -24,7 +24,7 @@ config_dim5:
     prefix: "config_dim5"
     problem:
         latent_dim: 0
-        tau: 0.5477225575051661
+        tau: 0.393919298579168
 
 
 config_dim6_tausmall:
@@ -39,7 +39,7 @@ config_dim6_tausmall:
     prefix: "config_dim6"
     problem:
         latent_dim: 1
-        tau: 0.3477225575051661
+        tau: 0.393919298579168
 
 
 
@@ -55,4 +55,4 @@ config_dim10:
     prefix: "output_dim10_mean0_10000_latent_dim1"
     problem:
         latent_dim: 1
-        tau: 0.5477225575051661
+        tau: 0.393919298579168

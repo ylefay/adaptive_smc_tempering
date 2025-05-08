@@ -28,7 +28,7 @@ def construct_my_prior_and_target(config):
         return jax.random.multivariate_normal(key, jnp.zeros(dim), jnp.eye(dim))
 
     def logbase_density_fn(x):
-        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.ones(dim), cov=jnp.eye(dim))
+        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim), cov=jnp.eye(dim))
 
     return loglikelihood_fn, base_measure_sampler, logbase_density_fn
 

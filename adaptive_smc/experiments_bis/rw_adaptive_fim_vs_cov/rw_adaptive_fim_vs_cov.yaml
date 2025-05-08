@@ -10,4 +10,4 @@ onfig_dim10:
     prefix: "config_dim10"
     problem:
         latent_dim: 0
-        tau: 0.5477225575051661
+        tau: 0.393919298579168

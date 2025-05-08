@@ -8,11 +8,11 @@ import yaml
 from adaptive_smc import optimise
 from adaptive_smc import proposals
 from adaptive_smc.criteria_functions import mahalanobis
+from adaptive_smc.criteria_functions import square_distance
 from adaptive_smc.experiments_bis.anisotropic_mahalanobis_vs_esjd.problem import \
     construct_my_prior_and_target_t_student, construct_my_prior_and_target_gaussian
 from adaptive_smc.save_and_read_and_postprocess import save
 from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
-from criteria_functions import square_distance
 
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)
@@ -35,7 +35,7 @@ def experiment_tstudent_maha(config, keys):
     tempering_length = config.get('tempering_length', 10 + dim)
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
-    loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target_gaussian(config)
+    loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target_t_student(config)
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     params_optimization_method = {"grid": jnp.linspace(0.01, 5, 500)}
@@ -45,7 +45,8 @@ def experiment_tstudent_maha(config, keys):
         {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
          "proposal": "build_gaussian_rwmh_cov_proposal_gamma",
          "tempering_sequence": my_tempering_sequence,
-         "init_param": init_param})
+         "init_param": init_param,
+         "type": "student_maha"})
     my_proposal = getattr(proposals, config['proposal'])
 
     if config['optimization_method']:
@@ -85,7 +86,8 @@ def experiment_tstudent(config, keys):
         {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
          "proposal": "build_gaussian_rwmh_cov_proposal_gamma",
          "tempering_sequence": my_tempering_sequence,
-         "init_param": init_param})
+         "init_param": init_param,
+         "type": "student"})
     my_proposal = getattr(proposals, config['proposal'])
 
     if config['optimization_method']:
@@ -125,7 +127,8 @@ def experiment_gaussian_maha(config, keys):
         {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
          "proposal": "build_gaussian_rwmh_cov_proposal_gamma",
          "tempering_sequence": my_tempering_sequence,
-         "init_param": init_param})
+         "init_param": init_param,
+         "type": "gaussian_maha"})
     my_proposal = getattr(proposals, config['proposal'])
 
     if config['optimization_method']:
@@ -145,15 +148,15 @@ def experiment_gaussian_maha(config, keys):
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
 
 
-def experiment_gaussian(config, keys, dim):
+def experiment_gaussian(config, keys):
     target_ess = config.get('target_ess')
     num_parallel_chain = config.get('num_parallel_chain')
     num_mcmc_steps = config.get('num_mcmc_steps')
 
+    dim = config.get('dim')
+
     tempering_length = config.get('tempering_length', 10 + dim)
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
-
-    dim = config.get('dim')
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target_gaussian(config)
 
@@ -165,7 +168,8 @@ def experiment_gaussian(config, keys, dim):
         {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
          "proposal": "build_gaussian_rwmh_cov_proposal_gamma",
          "tempering_sequence": my_tempering_sequence,
-         "init_param": init_param})
+         "init_param": init_param,
+         "type": "gaussian"})
     my_proposal = getattr(proposals, config['proposal'])
 
     if config['optimization_method']:
