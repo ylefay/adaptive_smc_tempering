@@ -42,4 +42,8 @@ def create_correlated_problem(key, dim, mean=None, stds=None, corr=None):
     if stds is None:
         stds = jnp.ones(dim)
     cov = corr * jnp.outer(stds, stds)
-    return cov
+
+    def loglikelihood_fn(x):
+        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=mean, cov=cov)
+
+    return loglikelihood_fn
