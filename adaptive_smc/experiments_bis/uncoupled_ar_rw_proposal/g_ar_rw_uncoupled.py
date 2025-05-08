@@ -65,7 +65,7 @@ def experiment_ar(config, keys):
     @jax.vmap
     def wrapper_smc(key):
         return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                          save_disk_mem=True)
+                          save_disk_mem=False)
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
@@ -113,7 +113,7 @@ def experiment_rw(config, keys):
     @jax.vmap
     def wrapper_smc(key):
         return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                          save_disk_mem=True)
+                          save_disk_mem=False)
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
@@ -159,7 +159,7 @@ def experiment_uncoupled_ar_rw(config, keys):
     @jax.vmap
     def wrapper_smc(key):
         return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                          save_disk_mem=True)
+                          save_disk_mem=False)
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config['prefix']))
