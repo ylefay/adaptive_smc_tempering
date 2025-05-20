@@ -2,10 +2,10 @@ import jax.numpy as jnp
 import jax.scipy.stats.t
 
 from adaptive_smc.experiments_bis.GLOBAL import *
-from adaptive_smc.problems.gaussian import create_correlated_problem
+from adaptive_smc.problems.gaussian import create_sparse_problem
 
 
-def construct_my_prior_and_target_gaussian(config):
+def construct_my_prior_and_target_gaussian(key, config):
     r"""
     The prior is a standard Gaussian distribution.
     The target is a Gaussian distribution N(1, C),
@@ -15,21 +15,20 @@ def construct_my_prior_and_target_gaussian(config):
 
     config_problem = config.get('problem')
     dim = config.get('dim')
-    latent_dim = config_problem.get('latent_dim', 2)
     corr_coeff = config_problem.get('corr_coeff', 0.9)
-    corr_coeff = corr_coeff / latent_dim
-    corr = jnp.eye(dim)
-    corr = corr.at[latent_dim:, ].set(corr_coeff)
-    corr = corr.at[:, latent_dim:].set(corr_coeff)
-    c = jnp.sqrt(jnp.diag(corr))
-    corr = corr / jnp.outer(c,c)
+    latent_dim = config_problem.get('latent_dim', 0)
+    key, subkey = jax.random.split(key)
+    loadings = jax.random.normal(subkey, shape=(dim, 1))
+    loadings = loadings.at[0].set(corr_coeff)  # strong loading for variable 0
+    loadings = loadings.at[1:].set(corr_coeff * 0.95)  # slightly lower loadings for others
 
-    loglikelihood_fn = create_correlated_problem(jax.random.PRNGKey(0),
-                                                 dim,
-                                                 None,
-                                                 None,
-                                                 corr
-                                                 )
+    # Factor covariance (1-dimensional latent factor)
+    factor_cov = jnp.array([[1.0]])
+
+    # Covariance = loadings * factor_cov * loadings.T + diag(noise)
+    Sigma = loadings @ factor_cov @ loadings.T + jnp.eye(dim)
+    jax.debug.print(Sigma)
+    loglikelihood_fn = create_sparse_problem(dim, latent_dim, cov=Sigma)
 
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, jnp.zeros(dim), jnp.eye(dim))

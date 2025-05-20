@@ -117,7 +117,7 @@ def experiment_gaussian_maha(config, keys):
     tempering_length = config.get('tempering_length', 10 + dim)
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
-    loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target_gaussian(config)
+    loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target_gaussian(OP_key, config)
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     params_optimization_method = {"grid": jnp.linspace(0.01, 5, 500)}
@@ -158,7 +158,7 @@ def experiment_gaussian(config, keys):
     tempering_length = config.get('tempering_length', 10 + dim)
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
-    loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target_gaussian(config)
+    loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target_gaussian(OP_key, config)
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     params_optimization_method = {"grid": jnp.linspace(0.01, 5, 500)}
@@ -202,7 +202,7 @@ if __name__ == "__main__":
             all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
-                experiment_tstudent_maha(config, keys)
-                experiment_tstudent(config, keys)
+                #experiment_tstudent_maha(config, keys)
+                #experiment_tstudent(config, keys)
                 experiment_gaussian_maha(config, keys)
                 experiment_gaussian(config, keys)
