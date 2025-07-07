@@ -3,7 +3,6 @@ from typing import Callable, Tuple
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
-from particles.distributions import Gamma
 
 from adaptive_smc.smc_types import LogDensity
 from adaptive_smc.utils import unvec, vec
