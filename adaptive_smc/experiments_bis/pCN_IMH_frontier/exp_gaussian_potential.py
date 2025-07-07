@@ -25,7 +25,7 @@ def default_title(prefix=''):
 
 
 def experiment_ar(config, keys, dim):
-    rho_grid = jnp.linspace(0, 0.99, 100)
+    rho_grid = jnp.linspace(0, 0.99, 50)
     config.update({'dim': dim})
     CovProposal = jnp.eye(dim)
 
@@ -35,14 +35,13 @@ def experiment_ar(config, keys, dim):
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     critical_temperature = 0.5 * (config.get('problem').get('tau')**(-2)-1)**(-1)*1/jnp.linalg.trace(CovProposal)
-    tempering_length = config.get('tempering_length', 5)
-    my_tempering_sequence = jnp.linspace(0, min(1, 5*critical_temperature), tempering_length)
+    #my_tempering_sequence = jnp.linspace(0, min(1, 5*critical_temperature), tempering_length)
 
-    params_optimization_method = {"grid": rho_grid, "batch_size": 100}
+    params_optimization_method = {"grid": rho_grid, "batch_size": 50}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
-    tempering_length = config.get('tempering_length', 10 + dim)
+    tempering_length = config.get('tempering_length', 20)
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
     init_param = jnp.array([0])
@@ -65,8 +64,7 @@ def experiment_ar(config, keys, dim):
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                          save_disk_mem=False)
+        return smc.low_memory_sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
@@ -85,5 +83,5 @@ if __name__ == "__main__":
             all_keys = jax.vmap(lambda k: jax.random.split(k, n_chains))(seq_keys)
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
-                for dim in range(1, 2):
+                for dim in range(1, 5):
                     experiment_ar(config, keys, dim)

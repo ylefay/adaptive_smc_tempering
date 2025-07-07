@@ -1,8 +1,8 @@
 config:
   run: Yes
-  num_parallel_chain: 100
+  num_parallel_chain: 1000
   num_mcmc_steps: 1000
-  sequential_repetitions: 5 # to be set to 100
+  sequential_repetitions: 1 # no need for more
   n_chains: 1
   OUTPUT_PATH: "./output/"
   prefix: "config"
