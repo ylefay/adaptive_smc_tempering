@@ -70,7 +70,7 @@ def construct_my_prior_and_target_t_allcomponents(config):
 
     config_problem = config.get('problem')
     dim = config.get('dim')
-    freedom = jnp.array(config_problem.get('freedom', jnp.arange(3, 3+dim-1, 1))[:dim])
+    freedom = jnp.array(config_problem.get('freedom', jnp.arange(3, 3+dim, 1))[:dim])
 
 
     def base_measure_sampler(key):
