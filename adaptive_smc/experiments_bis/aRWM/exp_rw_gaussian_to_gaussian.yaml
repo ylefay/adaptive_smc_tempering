@@ -1,12 +1,14 @@
 config1:
-    run: No
-    num_parallel_chain: 16
+    run: Yes
+    num_parallel_chain: 32
     num_mcmc_steps: 4000
     sequential_repetitions: 1
     parallel_repetitions: 10
     target_ess: 0.5
+    low_memory: True
+    b16: False
     dim: 5
-    OUTPUT_PATH: "./output/"
+    OUTPUT_PATH: "./rw_g_to_g_fig1/"
     prefix: "config1"
     problem:
       tau: 0.33231239229804085054
