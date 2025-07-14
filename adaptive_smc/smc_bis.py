@@ -444,17 +444,17 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             return None, None, None, mh_proposal_parameters, None, criteria, tempering_sequence, None, log_normalizations, None
         return couple_particles, log_weights_couple, log_weights, mh_proposal_parameters, acceptance_bools, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others
 
-    def low_memory_estimate_expectation_criteria_fun(self, state, i):
+    def low_memory_estimate_expectation_criteria_fun(self, state, i, j):
         """
         Construct estimate E_{i + 1}[g(z, z')  a(z, z')]
 
-        Currently, this function cannot be used with particle-informed proposal distributions:
+        This function can be used with particle-informed proposal distributions:
             It requires a distinction between i (going from 0 to T), and the particles (j=0, j=1)
         """
-        log_weights = state.log_weights.at[i].get()
-        particles = state.particles.at[i].get()
-        proposed_particles = state.proposed_particles.at[i].get()
-        g = self.criteria_function(particles, proposed_particles, state, i)
+        log_weights = state.log_weights.at[j].get()
+        particles = state.particles.at[j].get()
+        proposed_particles = state.proposed_particles.at[j].get()
+        g = self.criteria_function(particles, proposed_particles, state, i, j)
 
         def log_my_current_proposal(x, y):
             def _zero_proposal(x, y):
@@ -481,7 +481,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                     state,
                     self.log_tgt_fn(state.tempering_sequence.at[i - 1].get()),
                     self.log_likelihood_fn,
-                    i)[0](x, y)
+                    i, j)[0](x, y)
 
             return jax.lax.select(i > 0, _log_my_current_proposal(x, y), _zero_proposal(x, y))
 
@@ -502,7 +502,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 _state,
                 self.log_tgt_fn(state.tempering_sequence.at[i].get()),
                 self.log_likelihood_fn,
-                i + 1
+                i + 1, j + 1
             )
 
             log_target_density_at_t_fn = self.vmapped_log_tgt_fn(state.tempering_sequence.at[i].get())
@@ -613,7 +613,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             others
         )
 
-        to_optimize = self.low_memory_estimate_expectation_criteria_fun(state, 0)
+        to_optimize = self.low_memory_estimate_expectation_criteria_fun(state, 0, 0)
         criteria = criteria.at[0].set(apply_vmap_batch(jax.vmap(to_optimize), self.grid_criteria,
                                                        self.batch_size_criteria))
 
@@ -635,7 +635,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             self.build_mh_proposal(new_state,
                                    self.log_tgt_fn(tempering_sequence.at[0].get()),
                                    self.log_likelihood_fn,
-                                   1))
+                                   1, 1))
         log_proposal = jnp.vectorize(_log_proposal, signature="(d),(d)->()")
 
         log_weights_proposal = log_proposal(init_particles, init_proposed_particles)
@@ -657,7 +657,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 self.build_mh_proposal(state,
                                        self.log_tgt_fn(tempering_sequence.at[i - 1].get()),
                                        self.log_likelihood_fn,
-                                       i))
+                                       i, 1))
 
             @jax.vmap
             def inside_body_fn(key, couple_particle):
@@ -752,7 +752,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             _, _, other = self.build_mh_proposal(state,
                                                  self.log_tgt_fn(tempering_sequence.at[i - 1].get()),
                                                  self.log_likelihood_fn,
-                                                 i)
+                                                 i, 1)
             others = others.at[i].set(other)
 
             keys = jax.random.split(subkey, num_parallel_chain)
@@ -775,7 +775,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 mh_proposal_parameters, tempering_sequence, others
             )
 
-            to_optimize = self.low_memory_estimate_expectation_criteria_fun(new_state, i)
+            to_optimize = self.low_memory_estimate_expectation_criteria_fun(new_state, i, 1)
             new_mh_proposal_parameter = self.optimisation(
                 to_optimize,
                 mh_proposal_parameters.at[i - 1].get()
@@ -796,14 +796,15 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 new_state,
                 self.log_tgt_fn(tempering_sequence.at[i].get()),
                 self.log_likelihood_fn,
-                i + 1
+                i + 1,
+                2
             )
 
             _log_proposal, _, _ = (
                 self.build_mh_proposal(state,
                                        self.log_tgt_fn(tempering_sequence.at[i - 1].get()),
                                        self.log_likelihood_fn,
-                                       i))
+                                       i, 2))
 
             log_proposal = jnp.vectorize(_log_proposal, signature="(d),(d)->()")
             log_my_new_proposal = jnp.vectorize(_log_my_new_proposal, signature="(d),(d)->()")

@@ -23,10 +23,11 @@ class SMCStatebis(NamedTuple):
     tempering_sequence: ArrayLike  # of shape (iteration + 1, )
     others: Optional[ArrayLike] = None  # of shape (iteration, *initial_shape_of_other)
 
-
-type ProposalBuilder = Callable[[SMCStatebis, LogDensity, LogDensity, int], Tuple[LogProposal, ProposalSampler, ArrayLike]]
+# The first integer is the index used for accessing the MH parameters, the second integer, to access the particles, and related, arrays.
+type ProposalBuilder = Callable[[SMCStatebis, LogDensity, LogDensity, int, Optional[int]], Tuple[LogProposal, ProposalSampler, ArrayLike]]
 
 type OptimisingProcedure = Callable[
     [Callable[[ArrayLike], ArrayLike], ArrayLike], ArrayLike]
 
-type CriteriaFunction = Callable[[ArrayLike, ArrayLike, SMCStatebis, int], ArrayLike]
+# The second integer is exactly for the same reason as the second one in ProposalBuilder
+type CriteriaFunction = Callable[[ArrayLike, ArrayLike, SMCStatebis, int, int], ArrayLike]

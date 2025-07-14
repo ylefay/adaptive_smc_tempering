@@ -1,13 +1,13 @@
 import jax
 import jax.numpy as jnp
-
+from typing import Optional
 from adaptive_smc.estimates import cov_estimate
 from adaptive_smc.smc_types import LogDensity, SMCStatebis
 __all__ = [
     "build_mala_proposal_gamma",
 ]
 
-def build_mala_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity, _: LogDensity, i: int):
+def build_mala_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity, _: LogDensity, i: int, j: Optional[int]=None):
     """
     Metropolis Adjusted Langevin proposal with a gamma parameter
     """
@@ -16,17 +16,20 @@ def build_mala_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity
     gamma = state.mh_proposal_parameters.at[i - 1].get()
     dim = particles.shape[-1]
 
-    def fun_to_be_called_if_i_greater_than_one():
+    if not j:
+        j = i
+
+    def fun_to_be_called_if_j_greater_than_one():
         r"""
         Compute the covariance estimate of \pi_{t-1} given t\geq 1
         """
-        particles_at_i_minus_one = particles.at[i - 1].get().reshape(-1, particles.shape[-1])
-        log_weights_at_i_minus_one = log_weights.at[i - 1].get().reshape(-1, )
-        weights_at_i_minus_one = jnp.exp(log_weights_at_i_minus_one)
-        cov_hat = cov_estimate(particles_at_i_minus_one, weights_at_i_minus_one)
+        particles_at_j_minus_one = particles.at[j - 1].get().reshape(-1, particles.shape[-1])
+        log_weights_at_j_minus_one = log_weights.at[j - 1].get().reshape(-1, )
+        weights_at_j_minus_one = jnp.exp(log_weights_at_j_minus_one)
+        cov_hat = cov_estimate(particles_at_j_minus_one, weights_at_j_minus_one)
         return cov_hat
 
-    cov_hat = fun_to_be_called_if_i_greater_than_one()
+    cov_hat = fun_to_be_called_if_j_greater_than_one()
 
     def gaussian_mala_log_proposal(x, y):
         return jax.scipy.stats.multivariate_normal.logpdf(y, x + 0.5 * gamma ** 2 / dim ** (1 / 3) *

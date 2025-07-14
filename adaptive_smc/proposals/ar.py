@@ -8,10 +8,12 @@ from adaptive_smc.smc_types import LogDensity
 
 __all__ = ["build_build_autoregressive_gaussian_proposal",
            "build_autoregressive_gaussian_proposal",
-           "build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate",
-           "build_autoregressive_gaussian_proposal_with_cov_estimate",
            "build_build_uncoupled_autoregressive_gaussian_proposal",
            ]
+
+__experimental_danger__ = ["build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate"]
+
+__experimental__ = ["build_autoregressive_gaussian_proposal_with_cov_estimate"]
 
 
 def build_build_autoregressive_gaussian_proposal(mu: ArrayLike, C: ArrayLike):
@@ -21,7 +23,7 @@ def build_build_autoregressive_gaussian_proposal(mu: ArrayLike, C: ArrayLike):
     where C is a given matrix, and mu given vector.
     """
 
-    def _build(state: SMCStatebis, _: LogDensity, __: LogDensity, i):
+    def _build(state: SMCStatebis, _: LogDensity, __: LogDensity, i:int, j=None):
         rho = state.mh_proposal_parameters.at[i - 1].get()
 
         def gaussian_ar_log_proposal(x, y):
@@ -42,7 +44,7 @@ def build_build_uncoupled_autoregressive_gaussian_proposal(mu: ArrayLike, C: Arr
     where C is a given matrix, and mu given vector.
     """
 
-    def _build(state: SMCStatebis, _: LogDensity, __: LogDensity, i):
+    def _build(state: SMCStatebis, _: LogDensity, __: LogDensity, i: int, j=None):
         rho = state.mh_proposal_parameters.at[i - 1, 0].get()
         tau = state.mh_proposal_parameters.at[i - 1, 1].get()
 
@@ -58,7 +60,7 @@ def build_build_uncoupled_autoregressive_gaussian_proposal(mu: ArrayLike, C: Arr
     return _build
 
 def build_autoregressive_gaussian_proposal(state: SMCStatebis, log_tgt_density_fn: LogDensity,
-                                           log_likelihood_fn: LogDensity, i: int):
+                                           log_likelihood_fn: LogDensity, i: int, j=None):
     r"""
     Autoregressive proposal:
     q(y\mid x) = N(\rho x, (1-\rho^2)C),
@@ -67,11 +69,11 @@ def build_autoregressive_gaussian_proposal(state: SMCStatebis, log_tgt_density_f
     dim = state.particles.shape[-1]
     C = jnp.eye(dim)
     mu = jnp.zeros(dim)
-    return build_build_autoregressive_gaussian_proposal(mu, C)(state, log_tgt_density_fn, log_likelihood_fn, i)
+    return build_build_autoregressive_gaussian_proposal(mu, C)(state, log_tgt_density_fn, log_likelihood_fn, i, j)
 
 
 def build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate(state: SMCStatebis, log_tgt_density_fn: LogDensity,
-                                                                     log_likelihood_fn: LogDensity, i: int):
+                                                                     log_likelihood_fn: LogDensity, i: int, j=None):
     r"""
     Autoregressive proposal:
     q(y\mid x) = N(\rho (x-mu) + mu, (1-\rho^2)C),
@@ -106,12 +108,12 @@ def build_autoregressive_gaussian_proposal_with_nicolas_cov_estimate(state: SMCS
 
     C, mu = fun_to_be_called_if_i_greater_than_one()
     proposal, sampler, _ = build_build_autoregressive_gaussian_proposal(mu, C)(state, log_tgt_density_fn, log_likelihood_fn,
-                                                                           i)
+                                                                           i, j)
     return proposal, sampler, C
 
 
 def build_autoregressive_gaussian_proposal_with_cov_estimate(state: SMCStatebis, log_tgt_density_fn: LogDensity,
-                                                             log_likelihood_fn: LogDensity, i: int):
+                                                             log_likelihood_fn: LogDensity, i: int, j=None):
     particles = state.particles
     log_weights = state.log_weights
 
@@ -127,4 +129,4 @@ def build_autoregressive_gaussian_proposal_with_cov_estimate(state: SMCStatebis,
 
     C, mu = fun_to_be_called_if_i_greater_than_one()
     return build_build_autoregressive_gaussian_proposal(mu, C)(state, log_tgt_density_fn, log_likelihood_fn,
-                                                           i)
+                                                           i, j)

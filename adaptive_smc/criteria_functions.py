@@ -1,18 +1,18 @@
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
-
+from typing import Optional
 from adaptive_smc.smc_types import SMCStatebis
 
 
-def square_distance(x: ArrayLike, y: ArrayLike, _: SMCStatebis, __: int) -> ArrayLike:
+def square_distance(x: ArrayLike, y: ArrayLike, _: SMCStatebis, __: int, ___=None) -> ArrayLike:
     """
     Expected square jumping distance criterion: square distance between x and y.
     """
     return jnp.sum(jnp.square(x - y), axis=-1)
 
 
-def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCStatebis, i: int) -> ArrayLike:
+def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCStatebis, i: int, j: Optional[int]=None) -> ArrayLike:
     """
     At iteration i, for particles x, and proposed particles y, compute the Mahalanobis distances between x and y.
     The scaling matrix is the estimated covariance of the particles at iteration i - 1.
@@ -20,12 +20,15 @@ def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCStatebis, i: int) -> Array
     particles = state.particles
     dim = particles.shape[-1]
 
+    if not j:
+        j = i
+
     def _mahalanobis(x, y):
         if dim > 1:
-            cov = jnp.cov(particles.at[i - 1].get().reshape((particles.shape[1] * particles.shape[2]),
+            cov = jnp.cov(particles.at[j - 1].get().reshape((particles.shape[1] * particles.shape[2]),
                                                             dim), rowvar=False)
         else:
-            cov = jnp.var(particles.at[i - 1].get().reshape((particles.shape[1] * particles.shape[2]),
+            cov = jnp.var(particles.at[j - 1].get().reshape((particles.shape[1] * particles.shape[2]),
                                                             dim), axis=0).reshape((1, 1))
         return jnp.einsum('...j,...k,...jk->...', x - y, x - y, jnp.linalg.inv(cov))
 

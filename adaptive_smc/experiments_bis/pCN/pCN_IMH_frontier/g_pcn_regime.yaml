@@ -11,7 +11,6 @@ config:
     latent_dim: 0
     tau: 0.393919298579168
 
-
 config_lm:
   run: No
   num_parallel_chain: 100

@@ -1,7 +1,6 @@
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
-
 from adaptive_smc.smc_types import LogDensity, SMCStatebis
 
 __all__ = [
@@ -19,7 +18,7 @@ def build_build_pmala_proposal(C: ArrayLike):
     where C is a given matrix
     """
 
-    def _build(state: SMCStatebis, log_tgt_density_fn: LogDensity, _: LogDensity, i: int):
+    def _build(state: SMCStatebis, log_tgt_density_fn: LogDensity, _: LogDensity, i: int, j = None):
         delta = state.mh_proposal_parameters.at[i - 1].get()
 
         def gaussian_mala_log_proposal(x, y):
@@ -35,7 +34,7 @@ def build_build_pmala_proposal(C: ArrayLike):
     return _build
 
 
-def build_pmala_proposal(state: SMCStatebis, log_tgt_density_fn: LogDensity, log_likelihood_fn: LogDensity, i: int):
+def build_pmala_proposal(state: SMCStatebis, log_tgt_density_fn: LogDensity, log_likelihood_fn: LogDensity, i: int, j=None):
     r"""
     Preconditioned MALA proposal,
     Auxiliary gradient-based sampling algorithms,
@@ -44,4 +43,4 @@ def build_pmala_proposal(state: SMCStatebis, log_tgt_density_fn: LogDensity, log
     """
     dim = state.particles.shape[-1]
     C = jnp.eye(dim)
-    return build_build_pmala_proposal(C)(state, log_tgt_density_fn, log_likelihood_fn, i)
+    return build_build_pmala_proposal(C)(state, log_tgt_density_fn, log_likelihood_fn, i, j)
