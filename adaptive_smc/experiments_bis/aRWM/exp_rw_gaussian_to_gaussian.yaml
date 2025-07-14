@@ -9,6 +9,6 @@ config1:
     OUTPUT_PATH: "./output/"
     prefix: "config1"
     problem:
-      tau: 0.110431526074847
+      tau: 0.33231239229804085054
       latent_dim: 0
 

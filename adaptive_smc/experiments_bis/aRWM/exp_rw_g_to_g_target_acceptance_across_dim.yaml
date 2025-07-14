@@ -7,5 +7,5 @@
     OUTPUT_PATH: "./output/"
     prefix: "config1"
     problem:
-      tau: 0.110431526074847 # sqrt(0.1)
+      tau: 0.33231239229804085054 # sqrt(0.1)
       latent_dim_coeff: 0
