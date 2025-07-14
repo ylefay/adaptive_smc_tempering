@@ -1,0 +1,13 @@
+config:
+    run: No
+    num_parallel_chain: 16
+    num_mcmc_steps: 4000
+    sequential_repetitions: 1
+    parallel_repetitions: 5
+    target_ess: 0.9
+    dim: 10
+    OUTPUT_PATH: "./output/"
+    prefix: "config"
+    problem:
+      tau: 0.393919298579168
+      latent_dim: 0

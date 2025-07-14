@@ -1,0 +1,12 @@
+- config2: #used for the plot of section 3.
+    num_parallel_chain: 16
+    num_mcmc_steps: 4000
+    sequential_repetitions: 1
+    parallel_repetitions: 10
+    target_ess: 0.5
+    dim: 10
+    OUTPUT_PATH: "./output/"
+    prefix: "config2"
+    problem:
+          tau: 0.6324555320336758664 # sqrt(0.4)
+          latent_dim_coeff: 0

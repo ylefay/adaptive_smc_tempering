@@ -447,6 +447,9 @@ class GenericAdaptiveWasteFreeTemperingSMC:
     def low_memory_estimate_expectation_criteria_fun(self, state, i):
         """
         Construct estimate E_{i + 1}[g(z, z')  a(z, z')]
+
+        Currently, this function cannot be used with particle-informed proposal distributions:
+            It requires a distinction between i (going from 0 to T), and the particles (j=0, j=1)
         """
         log_weights = state.log_weights.at[i].get()
         particles = state.particles.at[i].get()
@@ -528,7 +531,8 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                           initial_mh_proposal_parameter: ArrayLike,
                           tempering_sequence: ArrayLike,
                           target_ess: Optional[float] = None,
-                          init_other: Optional[ArrayLike] = jnp.empty(1)) -> Tuple[
+                          init_other: Optional[ArrayLike] = jnp.empty(1),
+                          b16=False) -> Tuple[
         None, None, None, ArrayLike, None, ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
         r"""
 
@@ -542,6 +546,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         tempering_sequence
         target_ess
         init_other
+        b16: force the use of bfloat16 for the particles, to save memory.
 
         Returns
         -------
@@ -551,7 +556,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         diff_tempering_sequence = jnp.diff(tempering_sequence)
         diff_tempering_sequence = jnp.insert(diff_tempering_sequence, 0, tempering_sequence.at[0].get())
 
-        criteria = jnp.zeros((iteration + 1, self.grid_criteria.shape[0]))
+        criteria = jnp.zeros((iteration + 1, self.grid_criteria.shape[0]), dtype=jnp.bfloat16 if b16 else None)
 
         P = num_mcmc_steps + 1
         num_particles = num_parallel_chain * P
@@ -562,7 +567,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         pair_init_particles = self.vmapped_base_measure_sampler(subkeys)
         dim = pair_init_particles.shape[-1]
 
-        couple_particles = jnp.zeros((2, 2, num_parallel_chain, P, dim))
+        couple_particles = jnp.zeros((2, 2, num_parallel_chain, P, dim), dtype=jnp.bfloat16 if b16 else None)
 
         init_particles = pair_init_particles.at[:num_parallel_chain, :P].get()
         init_proposed_particles = pair_init_particles.at[num_parallel_chain:, P:].get()
@@ -570,10 +575,14 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         couple_particles = couple_particles.at[0, 0].set(init_particles)
         couple_particles = couple_particles.at[0, 1].set(init_proposed_particles)
 
+        # artificially set couple_particles[1] equal to the initial particles, to ensure that body_fn(1, ...) works
+        couple_particles = couple_particles.at[1, 0].set(init_particles)
+        couple_particles = couple_particles.at[1, 1].set(init_proposed_particles)
+
         mh_proposal_parameters = jnp.zeros((iteration + 1, *initial_mh_proposal_parameter.shape))
 
         log_normalizations = jnp.zeros((iteration + 1,))
-        log_weights = jnp.zeros((2, num_parallel_chain, P))
+        log_weights = jnp.zeros((2, num_parallel_chain, P), dtype=jnp.bfloat16 if b16 else None)
 
         if target_ess:
             _log_weights = self.vmapped_log_likelihood_fn(init_particles)
@@ -591,7 +600,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         log_normalizations = log_normalizations.at[0].set(log_normalization)
         log_weights = log_weights.at[0].set(init_log_weights)
 
-        log_weights_couple = jnp.zeros(shape=log_weights.shape)
+        log_weights_couple = jnp.zeros(shape=log_weights.shape, dtype=jnp.bfloat16 if b16 else None)
 
         others = jnp.zeros((iteration, *init_other.shape))
         others = others.at[0].set(init_other)
@@ -605,7 +614,8 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         )
 
         to_optimize = self.low_memory_estimate_expectation_criteria_fun(state, 0)
-        criteria = criteria.at[0].set(jax.vmap(to_optimize)(self.grid_criteria))
+        criteria = criteria.at[0].set(apply_vmap_batch(jax.vmap(to_optimize), self.grid_criteria,
+                                                       self.batch_size_criteria))
 
         new_mh_proposal_parameter = self.optimisation(
             to_optimize,
@@ -656,7 +666,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 first_proposal = proposal_sampler(subkey_0, couple_particle.at[0].get())
                 couple_particle = couple_particle.at[1].set(first_proposal)
 
-                _couple_particles = jnp.zeros((P, 2, dim))
+                _couple_particles = jnp.zeros((P, 2, dim), dtype=jnp.bfloat16 if b16 else None)
                 _couple_particles = _couple_particles.at[0].set(couple_particle)
                 _acceptance_bools = jnp.zeros((num_mcmc_steps,), dtype=bool)
 
@@ -708,10 +718,10 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
             log_weights = log_weights.at[0].set(log_weights.at[1].get())
             log_weights_couple = log_weights_couple.at[0].set(log_weights_couple.at[1].get())
-            couple_particles = couple_particles.at[0].set(couple_particles.at[0].get())
+            couple_particles = couple_particles.at[0].set(couple_particles.at[1].get())
 
-            ancestors = multinomial(subkey, jnp.exp(log_weights.at[i - 1].get().reshape(-1)), num_parallel_chain)
-            resampled_couple_particles = couple_particles.at[i - 1].get().reshape((num_particles, 2, dim)).at[
+            ancestors = multinomial(subkey, jnp.exp(log_weights.at[0].get().reshape(-1)), num_parallel_chain)
+            resampled_couple_particles = couple_particles.at[0].get().reshape((num_particles, 2, dim)).at[
                 ancestors].get()
             particles = couple_particles.at[:, 0].get()
             proposed_particles = couple_particles.at[:, 1].get()
@@ -725,8 +735,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 tempering_sequence = tempering_sequence.at[i].set(tempering_sequence.at[i - 1].get() + dlmbda)
                 diff_tempering_sequence = diff_tempering_sequence.at[i].set(dlmbda)
 
-            inside_body_fn = make_inner_loop(i,
-                                             couple_particles,
+            inside_body_fn = make_inner_loop(i, couple_particles,
                                              log_weights,
                                              mh_proposal_parameters,
                                              tempering_sequence,
@@ -766,12 +775,15 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 mh_proposal_parameters, tempering_sequence, others
             )
 
-            to_optimize = self.low_memory_estimate_expectation_criteria_fun(new_state, 1)
+            to_optimize = self.low_memory_estimate_expectation_criteria_fun(new_state, i)
             new_mh_proposal_parameter = self.optimisation(
                 to_optimize,
                 mh_proposal_parameters.at[i - 1].get()
             )
-            criteria = criteria.at[i].set(jax.vmap(to_optimize)(self.grid_criteria))
+            jax.clear_caches()
+            criteria = criteria.at[i].set(
+                apply_vmap_batch(jax.vmap(to_optimize), self.grid_criteria, self.batch_size_criteria))
+            jax.clear_caches()
             mh_proposal_parameters = mh_proposal_parameters.at[i].set(new_mh_proposal_parameter)
 
             new_state = SMCStatebis(
@@ -805,7 +817,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
             return couple_particles, log_weights_couple, log_weights, mh_proposal_parameters, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others
 
-        couple_particles, log_weights_couple, log_weights, mh_proposal_parameters, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others = \
+        _, _, _, mh_proposal_parameters, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others = \
             jax.lax.fori_loop(1, iteration + 1,
                               body_fn,
                               (
