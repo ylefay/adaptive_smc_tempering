@@ -88,7 +88,6 @@ if __name__ == "__main__":
     yaml_file = "g_pcn_regime.yaml"
     with open(yaml_file, "r") as file:
         y_config = yaml.load(file, Loader=yaml.FullLoader)
-
     for name_of_my_config, config in y_config.items():
         if config.get('run', True):
             sequential_repetitions = config.pop('sequential_repetitions', 1)
@@ -97,5 +96,5 @@ if __name__ == "__main__":
             all_keys = jax.vmap(lambda k: jax.random.split(k, parallel_repetitions))(seq_keys)
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
-                for dim in range(1, 2):
+                for dim in [1, 2, 3, 5, 10, 15, 30, 50, 75, 100]:
                     experiment_ar(config, keys, dim)

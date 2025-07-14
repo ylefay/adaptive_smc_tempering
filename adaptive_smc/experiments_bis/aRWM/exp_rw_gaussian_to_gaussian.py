@@ -33,7 +33,7 @@ def experiment_rwmh(config, keys):
     tempering_length = config.get('tempering_length', 10 + dim)
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
-    params_optimization_method = {"grid": jnp.linspace(0.01, 5, 500)}
+    params_optimization_method = {"grid": jnp.linspace(0.01, 5, 500), "batch_size": 10}
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
     tempering_length = config.get('tempering_length', 10 + dim)
@@ -53,12 +53,19 @@ def experiment_rwmh(config, keys):
         optimization_method = None
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               my_proposal, optimization_method)
+                                               my_proposal, optimization_method, batch_size_criteria=10)
 
-    @jax.vmap
-    def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess)
-
+    if config.get('low_memory', False):
+        @jax.vmap
+        def wrapper_smc(key):
+            return smc.low_memory_sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence,
+                                         target_ess,
+                                         b16=config.get('b16', False))
+    else:
+        @jax.vmap
+        def wrapper_smc(key):
+            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess, save_disk_mem=True)
+            
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
 
