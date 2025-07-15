@@ -5,12 +5,12 @@ import jax.numpy as jnp
 import jax.profiler
 import jax.random
 import yaml
+from adaptive_smc.experiments_bis.pCN.pCN_IMH_frontier.vanishing_gaussian_problem import construct_my_prior_and_target
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
-from adaptive_smc.experiments_bis.uncoupled_ar_rw_proposal.anisotropic_gaussian.problem import construct_my_prior_and_target
-from adaptive_smc.save_and_read_and_postprocess import save
 from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.save_and_read_and_postprocess import save
 
 """
 This methodology fails to detect the small temperature regime, why?
@@ -39,12 +39,8 @@ def experiment_ar(config, keys, dim):
     num_mcmc_steps = config.get('num_mcmc_steps')
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
-    critical_temperature = 0.5 * (config.get('problem').get('tau') ** (-2) - 1) ** (-1) * 1 / jnp.linalg.trace(
-        CovProposal)
-    # my_tempering_sequence = jnp.linspace(0, min(1, 5*critical_temperature), tempering_length)
 
     params_optimization_method = {"grid": rho_grid, "batch_size": 10}
-    # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
     tempering_length = config.get('tempering_length', dim + 5)
@@ -85,7 +81,7 @@ def experiment_ar(config, keys, dim):
 
 
 if __name__ == "__main__":
-    yaml_file = "g_pcn_regime.yaml"
+    yaml_file = "g_pcn_regime_vanishing.yaml"
     with open(yaml_file, "r") as file:
         y_config = yaml.load(file, Loader=yaml.FullLoader)
     for name_of_my_config, config in y_config.items():
