@@ -34,7 +34,7 @@ def experiment_ar(config, keys):
     tempering_length = config.get('tempering_length', 10 + dim)
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
-    params_optimization_method = {"grid": jnp.linspace(0, 0.99, 100)}
+    params_optimization_method = {"grid": jnp.linspace(0, 0.99, 100), "batch_size": 10}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
@@ -56,7 +56,7 @@ def experiment_ar(config, keys):
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                my_proposal, optimization_method,
-                                               grid_criteria=params_optimization_method['grid'])
+                                               grid_criteria=params_optimization_method['grid'], batch_size_criteria=10)
 
     @jax.vmap
     def wrapper_smc(key):

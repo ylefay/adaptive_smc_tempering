@@ -22,7 +22,7 @@ config_lm:
   low_memory: True
   b16: True
   problem:
-    latent_dim: 0
+    latent_dim: 1
     tau: 0.393919298579168
 
 config_lm_09:
@@ -37,5 +37,5 @@ config_lm_09:
   low_memory: True
   b16: False
   problem:
-    latent_dim: 0
+    latent_dim: 1
     tau: 0.393919298579168

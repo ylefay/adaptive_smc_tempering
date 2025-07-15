@@ -1,10 +1,11 @@
 config:
-    run: No
-    num_parallel_chain: 16
+    run: Yes
+    num_parallel_chain: 32
     num_mcmc_steps: 4000
     sequential_repetitions: 1
-    parallel_repetitions: 5
-    target_ess: 0.9
+    parallel_repetitions: 10
+    low_memory: True
+    target_ess: 0.5
     dim: 10
     OUTPUT_PATH: "./output/"
     prefix: "config"
