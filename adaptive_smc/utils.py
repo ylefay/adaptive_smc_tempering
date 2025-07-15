@@ -35,7 +35,7 @@ def apply_vmap_batch(fun: Callable[[ArrayLike], ArrayLike], arg: ArrayLike, batc
     return res
 
 def normalize_log_weights(log_weights: ArrayLike) -> Tuple[ArrayLike, float]:
-    """
+    r"""
     Normalize the log weights \exp \log w_i and return the log normalization constant:
         \log N^{-1}\sum_{i=1}^N \exp(\log w_i)
     """

@@ -10,7 +10,6 @@ __all__ = [
     "build_gaussian_rw_proposal",
     "build_gaussian_rwmh_cov_proposal",
     "build_gaussian_rwmh_cov_proposal_gamma",
-    "",
     "build_build_gaussian_rw_proposal"
 ]
 
@@ -53,14 +52,16 @@ def build_gaussian_rwmh_cov_proposal_gamma(state: SMCStatebis, _: LogDensity, __
     log_weights = state.log_weights
     optimal_scale = gamma ** 2 / dim
 
+    if not j:
+        j = i
     def fun_to_be_called_if_j_greater_than_one():
         r"""
         Compute the covariance estimate of \pi_{t-1} given t\geq 1
         """
-        particles_at_i_minus_one = particles.at[i - 1].get().reshape(-1, particles.shape[-1])
-        log_weights_at_i_minus_one = log_weights.at[i - 1].get().reshape(-1, )
-        weights_at_i_minus_one = jnp.exp(log_weights_at_i_minus_one)
-        cov_hat, _ = cov_estimate(particles_at_i_minus_one, weights_at_i_minus_one)
+        particles_at_j_minus_one = particles.at[j - 1].get().reshape(-1, particles.shape[-1])
+        log_weights_at_j_minus_one = log_weights.at[j - 1].get().reshape(-1, )
+        weights_at_j_minus_one = jnp.exp(log_weights_at_j_minus_one)
+        cov_hat, _ = cov_estimate(particles_at_j_minus_one, weights_at_j_minus_one)
         return cov_hat
 
     C = optimal_scale * fun_to_be_called_if_j_greater_than_one()
@@ -70,7 +71,7 @@ def build_gaussian_rwmh_cov_proposal_gamma(state: SMCStatebis, _: LogDensity, __
     return gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler, jnp.empty(1)
 
 
-def build_gaussian_rwmh_invfim_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity, __: LogDensity, i: int, j: Optional[int, None]):
+def build_gaussian_rwmh_invfim_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity, __: LogDensity, i: int, j: Optional[int]=None):
     """
         Same as build_gaussian_rwmh_cov_proposal with gamma**2/dim in front of the covariance matrix
         """

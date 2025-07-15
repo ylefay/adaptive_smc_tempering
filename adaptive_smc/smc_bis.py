@@ -575,10 +575,6 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         couple_particles = couple_particles.at[0, 0].set(init_particles)
         couple_particles = couple_particles.at[0, 1].set(init_proposed_particles)
 
-        # artificially set couple_particles[1] equal to the initial particles, to ensure that body_fn(1, ...) works
-        couple_particles = couple_particles.at[1, 0].set(init_particles)
-        couple_particles = couple_particles.at[1, 1].set(init_proposed_particles)
-
         mh_proposal_parameters = jnp.zeros((iteration + 1, *initial_mh_proposal_parameter.shape))
 
         log_normalizations = jnp.zeros((iteration + 1,))
@@ -716,10 +712,6 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             couple_particles, log_weights_couple, log_weights, mh_proposal_parameters, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others = carry
             subkey = jax.random.fold_in(key, i)
 
-            log_weights = log_weights.at[0].set(log_weights.at[1].get())
-            log_weights_couple = log_weights_couple.at[0].set(log_weights_couple.at[1].get())
-            couple_particles = couple_particles.at[0].set(couple_particles.at[1].get())
-
             ancestors = multinomial(subkey, jnp.exp(log_weights.at[0].get().reshape(-1)), num_parallel_chain)
             resampled_couple_particles = couple_particles.at[0].get().reshape((num_particles, 2, dim)).at[
                 ancestors].get()
@@ -804,7 +796,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                 self.build_mh_proposal(state,
                                        self.log_tgt_fn(tempering_sequence.at[i - 1].get()),
                                        self.log_likelihood_fn,
-                                       i, 2))
+                                       i, 1))
 
             log_proposal = jnp.vectorize(_log_proposal, signature="(d),(d)->()")
             log_my_new_proposal = jnp.vectorize(_log_my_new_proposal, signature="(d),(d)->()")
@@ -815,6 +807,11 @@ class GenericAdaptiveWasteFreeTemperingSMC:
             new_log_weights_couple = new_log_weights_proposal + new_log_weights
             new_log_weights_couple, _ = normalize_log_weights(new_log_weights_couple)
             log_weights_couple = log_weights_couple.at[1].set(new_log_weights_couple)
+
+            # Need to pass the new weights and particles (j=1) to (j-1=0) for next iteration
+            log_weights = log_weights.at[0].set(log_weights.at[1].get())
+            log_weights_couple = log_weights_couple.at[0].set(log_weights_couple.at[1].get())
+            couple_particles = couple_particles.at[0].set(couple_particles.at[1].get())
 
             return couple_particles, log_weights_couple, log_weights, mh_proposal_parameters, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others
 

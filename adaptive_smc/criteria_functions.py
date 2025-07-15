@@ -3,7 +3,7 @@ import jax.numpy as jnp
 from jax.typing import ArrayLike
 from typing import Optional
 from adaptive_smc.smc_types import SMCStatebis
-
+from adaptive_smc.estimates import cov_estimate
 
 def square_distance(x: ArrayLike, y: ArrayLike, _: SMCStatebis, __: int, ___=None) -> ArrayLike:
     """
@@ -14,8 +14,16 @@ def square_distance(x: ArrayLike, y: ArrayLike, _: SMCStatebis, __: int, ___=Non
 
 def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCStatebis, i: int, j: Optional[int]=None) -> ArrayLike:
     """
-    At iteration i, for particles x, and proposed particles y, compute the Mahalanobis distances between x and y.
-    The scaling matrix is the estimated covariance of the particles at iteration i - 1.
+    First possibility (only?)
+    At iteration i,
+        for particles x_i ~ \pi_{i-1},
+        compute the Mahalanobis distances between x and y.
+        The scaling matrix is the estimated covariance under \pi_i (using weights w_{i}, and particles x_i).
+
+            Example of application:
+            maximising mahalanobis ESJD at iteration i, to compute \theta_{i+1} parameterizing q_{i+1}, leaving
+            \pi_{i} invariant (which is why we estimate the cov under \pi_{i}).
+
     """
     particles = state.particles
     dim = particles.shape[-1]
@@ -24,12 +32,12 @@ def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCStatebis, i: int, j: Optio
         j = i
 
     def _mahalanobis(x, y):
-        if dim > 1:
-            cov = jnp.cov(particles.at[j - 1].get().reshape((particles.shape[1] * particles.shape[2]),
-                                                            dim), rowvar=False)
-        else:
-            cov = jnp.var(particles.at[j - 1].get().reshape((particles.shape[1] * particles.shape[2]),
-                                                            dim), axis=0).reshape((1, 1))
+        """
+        Compute the MH distance between x and y, using the covariance matrix estimated from x ~ \pi_{i-1}, and weights \pi_{i}/\pi_i
+        """
+        _x = x.reshape(x.shape[0] * x.shape[1], 1) # ~ \pi_{i-1}
+        _w = jnp.exp(state.log_weights.at[j].get().squeeze())
+        cov, _ = cov_estimate(_x, _w)
         return jnp.einsum('...j,...k,...jk->...', x - y, x - y, jnp.linalg.inv(cov))
 
     return jax.lax.select(i == 0, jnp.sum(jnp.square(x - y), axis=-1), _mahalanobis(x, y))

@@ -1,11 +1,11 @@
 config1:
     run: Yes
     num_parallel_chain: 32
-    num_mcmc_steps: 4000
+    num_mcmc_steps: 8000
     sequential_repetitions: 1
     parallel_repetitions: 10
     target_ess: 0.5
-    low_memory: True
+    low_memory: False
     b16: False
     dim: 5
     OUTPUT_PATH: "./rw_g_to_g_fig1/"
