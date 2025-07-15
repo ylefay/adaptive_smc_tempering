@@ -1,17 +1,4 @@
-config:
-  run: No
-  num_parallel_chain: 100
-  num_mcmc_steps: 10000 #10000
-  sequential_repetitions: 1
-  parallel_repetitions: 1
-  OUTPUT_PATH: "./output/"
-  prefix: "config"
-  low_memory: False
-  problem:
-    latent_dim: 0
-    tau: 0.393919298579168
-
-config_lm:
+config_lm_vanish_1_None:
   run: Yes
   num_parallel_chain: 100
   num_mcmc_steps: 10000 #10000
@@ -22,10 +9,10 @@ config_lm:
   low_memory: True
   b16: True
   problem:
-    latent_dim: 0
+    vanishing_order: 1
     tau: 0.393919298579168
 
-config_lm_09:
+config_lm_vanish_1_09:
   run: Yes
   num_parallel_chain: 100
   num_mcmc_steps: 10000 #10000
@@ -37,5 +24,5 @@ config_lm_09:
   low_memory: True
   b16: False
   problem:
-    latent_dim: 0
+    vanishing_order: 1
     tau: 0.393919298579168
