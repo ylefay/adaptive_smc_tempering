@@ -14,8 +14,6 @@ from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)
 
-jax.config.update('jax_disable_jit', True)
-
 def default_title(prefix=''):
     now = datetime.now()
 
@@ -34,7 +32,7 @@ def experiment_rwmh(config, keys):
     tempering_length = config.get('tempering_length', 10 + dim)
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
-    params_optimization_method = {"grid": jnp.linspace(0.01, 5, 50), "batch_size": 10}
+    params_optimization_method = {"grid": jnp.linspace(0.01, 5, 500), "batch_size": 10}
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
     tempering_length = config.get('tempering_length', 10 + dim)
