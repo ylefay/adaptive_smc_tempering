@@ -9,7 +9,7 @@ from adaptive_smc import optimise
 from adaptive_smc import proposals
 from adaptive_smc.experiments_bis.gaussians.problem import construct_my_prior_and_target
 from adaptive_smc.save_and_read_and_postprocess import save
-from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 
 jax.config.update("jax_enable_x64", False)
 jax.config.update("jax_disable_jit", False)

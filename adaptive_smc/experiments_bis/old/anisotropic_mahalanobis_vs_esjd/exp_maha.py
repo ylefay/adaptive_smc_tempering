@@ -9,10 +9,10 @@ from adaptive_smc import optimise
 from adaptive_smc import proposals
 from adaptive_smc.criteria_functions import mahalanobis
 from adaptive_smc.criteria_functions import square_distance
-from adaptive_smc.experiments_bis.anisotropic_mahalanobis_vs_esjd.problem import \
+from adaptive_smc.experiments_bis.old.anisotropic_mahalanobis_vs_esjd.problem import \
     construct_my_prior_and_target_t_allcomponents, construct_my_prior_and_target_gaussian
 from adaptive_smc.save_and_read_and_postprocess import save
-from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)

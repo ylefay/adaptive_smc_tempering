@@ -10,7 +10,7 @@ from adaptive_smc import optimise
 from adaptive_smc import proposals
 from adaptive_smc.experiments_bis.mixture_of_gaussians.problem import construct_my_prior_and_target
 from adaptive_smc.save_and_read_and_postprocess import save
-from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)

@@ -10,7 +10,7 @@ from adaptive_smc import optimise
 from adaptive_smc import proposals
 from adaptive_smc.experiments_bis.uncoupled_ar_rw_proposal.problem import construct_my_prior_and_target
 from adaptive_smc.save_and_read_and_postprocess import save
-from adaptive_smc.smc_bis import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 
 """
 This methodology fails to detect the small temperature regime, why?
