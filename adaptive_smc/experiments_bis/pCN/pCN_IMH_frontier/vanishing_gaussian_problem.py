@@ -22,9 +22,9 @@ def construct_my_prior_and_target(config):
     loglikelihood_fn = lambda x: - 0.5 * x.T @ jnp.linalg.inv(C) @ x * (1 / tau ** 2 - 1)
 
     def base_measure_sampler(key):
-        return jax.random.multivariate_normal(key, jnp.zeros(dim), jnp.eye(dim))
+        return jax.random.multivariate_normal(key, jnp.zeros(dim), C)
 
     def logbase_density_fn(x):
-        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim), cov=jnp.eye(dim))
+        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim), cov=C)
 
     return loglikelihood_fn, base_measure_sampler, logbase_density_fn

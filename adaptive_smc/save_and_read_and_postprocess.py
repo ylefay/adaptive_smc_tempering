@@ -1,5 +1,7 @@
 import pickle
 
+import jax
+import jax.lax
 import jax.numpy as jnp
 
 
@@ -12,8 +14,72 @@ def save(res, config, output_path=""):
         pickle.dump({'config': config, 'res': res}, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def acf(samples, max_order=20):
+def acf(samples, max_order=20, diag=True):
     """
+    Agarwal, M., & Vats, D. (2022). Globally Centered Autocovariances in MCMC.
+    Journal of Computational and Graphical Statistics, 31(3), 629–638.
+    https://doi.org/10.1080/10618600.2022.2037433
+
+    Make ACF function for different iterations given set of samples (either particles or
+    function evaluated particles) of shape (n_parallel_run, n_iterations, n_chain, n_length_of_chain, dim).
+    It transforms the samples into a shape (n_iterations, n_parallel_run*n_chain, n_length_of_chain, dim)
+    And compute the AC for order 1 to max_order, using the global mean as the stationary mean of the chain,
+    and averaging over n_parallel_run*n_chain chains the computed auto-correlations.
+
+    We iteratively set to 0 the entries of the chains at lag :k and -k:
+    """
+    n_iter = samples.shape[1]
+    dim = samples.shape[-1]
+    n_length_of_chain = samples.shape[3]
+
+    samples = jnp.swapaxes(samples, 0, 1)
+    samples = samples.reshape((samples.shape[0], -1, *samples.shape[3:]))
+
+    global_mean = samples.mean(axis=[1, 2])
+    global_mean = global_mean.reshape((samples.shape[0], 1, 1, samples.shape[3]))
+
+    diff0 = samples - global_mean
+    diff0 = diff0[..., jnp.newaxis, :]
+
+    var0 = jnp.mean(diff0 @ jnp.swapaxes(diff0, -1, -2), axis=[2])
+
+    def _acf(inps):
+        k, samples_up_to_k, samples_from_k, carry = inps
+
+        diff = samples_up_to_k
+        diffk = samples_from_k
+
+        diff = diff[..., jnp.newaxis, :]
+        diffk = diffk[..., jnp.newaxis]
+
+        prod = jnp.roll(diff, shift=k, axis=2) @ diffk
+
+        vark = jnp.mean(prod, axis=[2])  # biased
+        corr = jnp.mean(vark / var0, axis=[-3])
+
+        carry = carry.at[k - 1].set(corr)
+        return k + 1, samples_up_to_k.at[..., -k:, :].set(0), samples_from_k.at[..., :k, :].set(0), carry
+
+    def cond(inps):
+        k, *_ = inps
+        return k < jax.lax.min(max_order + 1, n_length_of_chain)
+
+    shifted_samples = samples - global_mean
+    *_, acfs = jax.lax.while_loop(cond, _acf, (
+        1, shifted_samples.at[..., -1:, :].set(0), shifted_samples.at[..., :1, :].set(0),
+        jnp.zeros(shape=(max_order, n_iter, dim, dim))))
+
+    if diag:
+        acfs = acfs[..., jnp.arange(dim), jnp.arange(dim)]
+
+    return acfs
+
+
+def acf2(samples, max_order=20):
+    """
+    NOT OPTIMISED
+    YIELDS EXACT SAME RESULT AS acf
+
     Agarwal, M., & Vats, D. (2022). Globally Centered Autocovariances in MCMC. Journal of Computational and Graphical Statistics, 31(3), 629–638. https://doi.org/10.1080/10618600.2022.2037433
 
     Make ACF function for different iterations given set of samples (either particles or
@@ -23,6 +89,7 @@ def acf(samples, max_order=20):
     using the global mean as the stationary mean of the chain, and
     averaging over n_parallel_run*n_chain chains the computed autocorrelations.
     """
+    n_len_chain = samples.shape[3]
     samples = jnp.swapaxes(samples, 0, 1)
     samples = samples.reshape(
         (samples.shape[0], samples.shape[1] * samples.shape[2], samples.shape[3], samples.shape[4]))
@@ -38,9 +105,21 @@ def acf(samples, max_order=20):
         diff = diff.reshape((diff.shape[0], diff.shape[1], diff.shape[2], 1, diff.shape[3]))
         diffk = diffk.reshape((diffk.shape[0], diffk.shape[1], diffk.shape[2], diffk.shape[3], 1))
         prod = diff @ diffk
-        vark = jnp.mean(prod, axis=[2])
+        vark = jnp.sum(prod, axis=[2]) / n_len_chain
         corr = jnp.mean(vark / var0, axis=[-3])
         return corr
 
-    acf_result = jnp.array([fcorr(k) for k in range(1, max_order)])
+    acf_result = jnp.array([fcorr(k) for k in range(1, max_order + 1)])
     return acf_result
+
+
+"""
+if __name__ == "__main__":
+    jax.config.update("jax_disable_jit", True)
+    U = jax.random.PRNGKey(0)
+    samples = jax.random.uniform(U, shape=(1, 1, 10, 100, 4))
+
+    r = acf(samples, 5)[..., jnp.arange(3), jnp.arange(3)]
+    r2 = acf2(samples, 5)[..., jnp.arange(3), jnp.arange(3)]
+    assert jnp.all(jnp.abs(r2-r)<=0.001)
+"""
