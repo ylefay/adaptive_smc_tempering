@@ -32,7 +32,8 @@ def default_title(prefix=''):
 def experiment_ar(config, keys, dim):
     rho_grid = jnp.linspace(0, 0.99, 100)
     config.update({'dim': dim})
-    CovProposal = jnp.eye(dim)
+    vanishing_order = config['problem'].get('vanishing_order', 1)
+    CovProposal = jnp.diag( 1 / jnp.arange(1, dim+1)**vanishing_order)
 
     target_ess = config.get('target_ess', None)
     num_parallel_chain = config.get('num_parallel_chain')
@@ -92,5 +93,5 @@ if __name__ == "__main__":
             all_keys = jax.vmap(lambda k: jax.random.split(k, parallel_repetitions))(seq_keys)
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
-                for dim in [1, 2, 3, 5, 10, 15, 30, 50, 75, 100]:
+                for dim in [1, 2, 3, 5, 10, 15, 30]: # 50, 75, 100
                     experiment_ar(config, keys, dim)

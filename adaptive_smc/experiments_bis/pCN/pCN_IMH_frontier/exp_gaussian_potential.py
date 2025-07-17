@@ -16,7 +16,7 @@ from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 This methodology fails to detect the small temperature regime, why?
 """
 
-OP_key = jax.random.PRNGKey(0)
+OP_key = jax.random.PRNGKey(2)
 _, key = jax.random.split(OP_key)
 
 jax.config.update("jax_enable_x64", True)
@@ -96,5 +96,5 @@ if __name__ == "__main__":
             all_keys = jax.vmap(lambda k: jax.random.split(k, parallel_repetitions))(seq_keys)
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
-                for dim in [1, 2, 3, 5, 10, 15, 30, 50, 75, 100]:
+                for dim in [15, 30, 50, 75, 100]: #[1, 2, 3, 5, 10, 15, 30, 50, 75, 100]
                     experiment_ar(config, keys, dim)
