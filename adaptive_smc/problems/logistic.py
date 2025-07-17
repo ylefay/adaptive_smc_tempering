@@ -37,9 +37,3 @@ def get_dataset(flip=True, dataset="Sonar"):
     dataset = getattr(datasets, dataset)()
     data = dataset.preprocess(dataset.raw_data, return_y=not flip)
     return data
-
-
-if __name__ == "__main__":
-    flipped_predictors = get_dataset()
-    N, dim = flipped_predictors.shape
-    loglikehood_fn = get_log_likelihood(flipped_predictors)
