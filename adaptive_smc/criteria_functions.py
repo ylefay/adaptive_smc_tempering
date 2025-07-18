@@ -1,9 +1,12 @@
+from typing import Optional
+
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
-from typing import Optional
-from adaptive_smc.smc_types import SMCStatebis
+
 from adaptive_smc.estimates import cov_estimate
+from adaptive_smc.smc_types import SMCStatebis
+
 
 def square_distance(x: ArrayLike, y: ArrayLike, _: SMCStatebis, __: int, ___=None) -> ArrayLike:
     """
@@ -12,8 +15,8 @@ def square_distance(x: ArrayLike, y: ArrayLike, _: SMCStatebis, __: int, ___=Non
     return jnp.sum(jnp.square(x - y), axis=-1)
 
 
-def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCStatebis, i: int, j: Optional[int]=None) -> ArrayLike:
-    """
+def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCStatebis, i: int, j: Optional[int] = None) -> ArrayLike:
+    r"""
     First possibility (only?)
     At iteration i,
         for particles x_i ~ \pi_{i-1},
@@ -25,17 +28,14 @@ def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCStatebis, i: int, j: Optio
             \pi_{i} invariant (which is why we estimate the cov under \pi_{i}).
 
     """
-    particles = state.particles
-    dim = particles.shape[-1]
 
-    if not j:
-        j = i
+    j = j or i
 
     def _mahalanobis(x, y):
-        """
+        r"""
         Compute the MH distance between x and y, using the covariance matrix estimated from x ~ \pi_{i-1}, and weights \pi_{i}/\pi_i
         """
-        _x = x.reshape(x.shape[0] * x.shape[1], 1) # ~ \pi_{i-1}
+        _x = x.reshape(x.shape[0] * x.shape[1], 1)  # ~ \pi_{i-1}
         _w = jnp.exp(state.log_weights.at[j].get().squeeze())
         cov, _ = cov_estimate(_x, _w)
         return jnp.einsum('...j,...k,...jk->...', x - y, x - y, jnp.linalg.inv(cov))

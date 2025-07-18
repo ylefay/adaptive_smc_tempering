@@ -1,13 +1,18 @@
+from typing import Optional
+
 import jax
 import jax.numpy as jnp
-from typing import Optional
+
 from adaptive_smc.estimates import cov_estimate
 from adaptive_smc.smc_types import LogDensity, SMCStatebis
+
 __all__ = [
     "build_mala_proposal_gamma",
 ]
 
-def build_mala_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity, _: LogDensity, i: int, j: Optional[int]=None):
+
+def build_mala_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity, _: LogDensity, i: int,
+                              j: Optional[int] = None):
     """
     Metropolis Adjusted Langevin proposal with a gamma parameter
     """
@@ -16,8 +21,7 @@ def build_mala_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity
     gamma = state.mh_proposal_parameters.at[i - 1].get()
     dim = particles.shape[-1]
 
-    if not j:
-        j = i
+    j = j or i
 
     def fun_to_be_called_if_j_greater_than_one():
         r"""

@@ -1,6 +1,7 @@
 # Generate random standard deviations
 import jax
 import jax.numpy as jnp
+
 key = jax.random.PRNGKey(1)
 n_dim = 3
 key, subkey1, subkey2 = jax.random.split(key, 3)
@@ -18,6 +19,6 @@ corr_m = corr_m.at[jnp.triu_indices(n_dim, k=1)].set(corr)
 corr_m = corr_m.at[jnp.tril_indices(n_dim, k=-1)].set(corr)
 
 # Compute covariance matrix
-cov_m = std_m @ corr_m @ std_m/12
+cov_m = std_m @ corr_m @ std_m / 12
 print(cov_m)
 print(jax.scipy.linalg.eigh(cov_m))

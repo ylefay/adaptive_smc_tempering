@@ -61,7 +61,6 @@ def construct_my_prior_and_target_t_student(config):
     return loglikelihood_fn, base_measure_sampler, logbase_density_fn
 
 
-
 def construct_my_prior_and_target_t_allcomponents(config):
     r"""
     the target density is a product of t distrib
@@ -70,8 +69,7 @@ def construct_my_prior_and_target_t_allcomponents(config):
 
     config_problem = config.get('problem')
     dim = config.get('dim')
-    freedom = jnp.array(config_problem.get('freedom', jnp.arange(3, 3+dim, 1))[:dim])
-
+    freedom = jnp.array(config_problem.get('freedom', jnp.arange(3, 3 + dim, 1))[:dim])
 
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, jnp.zeros(dim), jnp.eye(dim))

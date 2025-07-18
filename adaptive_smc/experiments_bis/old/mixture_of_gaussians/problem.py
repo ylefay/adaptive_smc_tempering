@@ -30,10 +30,9 @@ def construct_my_prior_and_target(config):
                                     scale=1 / (1 / tau2 ** 2))
 
     def loglikelihood_fn(x):
-
         log_tgt_distrib = jnp.log(0.1 * jnp.exp(logpdf1(x)) + 0.9 * jnp.exp(logpdf2(x)))
         log_prior = jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim),
-                                                               cov = jnp.eye(dim))
+                                                               cov=jnp.eye(dim))
         ll = log_tgt_distrib - log_prior
         return ll
 
@@ -44,5 +43,3 @@ def construct_my_prior_and_target(config):
         return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim), cov=jnp.eye(dim))
 
     return loglikelihood_fn, base_measure_sampler, logbase_density_fn
-
-

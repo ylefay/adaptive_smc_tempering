@@ -12,8 +12,10 @@ def construct_my_prior_and_target(config):
     config_problem = config.get('problem')
     tau = config_problem.get('tau')
     dim = config.get('dim')
-    loglikelihood_fn = lambda x: - 0.5 * x.T @ x * (1 / tau ** 2 - 1) - jnp.sum(x ** 3 * jnp.exp(-jnp.abs(x) ** 2),
-                                                                                axis=-1)
+    beta = config_problem.get('beta', 1.0)
+    loglikelihood_fn = lambda x: - 0.5 * x.T @ x * (1 / tau ** 2 - 1) - beta * jnp.sum(
+        x ** 3 * jnp.exp(-jnp.abs(x) ** 2),
+        axis=-1)
 
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, jnp.zeros(dim), jnp.eye(dim))

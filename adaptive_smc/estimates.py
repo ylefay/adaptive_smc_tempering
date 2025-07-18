@@ -132,8 +132,8 @@ def inverse_FIM_gaussian_approx(particles: ArrayLike, weights: ArrayLike, log_ta
     cov, mu = cov_estimate(particles, weights)
     chol_cov = jax.scipy.linalg.cholesky(cov)
     gamma = jnp.mean(modified_statistic(particles) * log_target_density_fn(particles), axis=0)
-    Gamma_matrix = jnp.diag(jnp.sqrt(2) /2* gamma.at[dim::].get())
-    mask = ~jnp.isin(jnp.arange(0, dim*dim-1), jnp.arange(0, dim*dim-1, dim))
+    Gamma_matrix = jnp.diag(jnp.sqrt(2) / 2 * gamma.at[dim::].get())
+    mask = ~jnp.isin(jnp.arange(0, dim * dim - 1), jnp.arange(0, dim * dim - 1, dim))
 
     Gamma_matrix = Gamma_matrix.at[jnp.triu_indices(dim)].set(
         gamma.at[mask].get()

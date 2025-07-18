@@ -4,7 +4,6 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
-
 from adaptive_smc.proposals import build_build_autoregressive_gaussian_proposal
 from adaptive_smc.proposals import build_gaussian_rwmh_cov_proposal_gamma
 from adaptive_smc.smc_types import ProposalBuilder, LogDensity, SMCStatebis, LogProposal
@@ -33,7 +32,8 @@ def build_build_mixture_ar_rwm(mu, C) -> ProposalBuilder:
 
     _build_ar = build_build_autoregressive_gaussian_proposal(mu, C)
 
-    def _build(state: SMCStatebis, log_tgt_density_fn: LogDensity, log_likelihood_fn: LogDensity, i: int, j: Optional[int]=None):
+    def _build(state: SMCStatebis, log_tgt_density_fn: LogDensity, log_likelihood_fn: LogDensity, i: int,
+               j: Optional[int] = None):
         beta = state.mh_proposal_parameters.at[i - 1, 0].get()
         # Construct the RWM proposal.
         gammas = state.mh_proposal_parameters.at[:, 1].get()
