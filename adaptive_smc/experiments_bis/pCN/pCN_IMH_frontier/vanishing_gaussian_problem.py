@@ -1,7 +1,4 @@
 import jax.numpy as jnp
-import jax.random
-
-from adaptive_smc.experiments_bis.GLOBAL import *
 
 
 def construct_my_prior_and_target(config):

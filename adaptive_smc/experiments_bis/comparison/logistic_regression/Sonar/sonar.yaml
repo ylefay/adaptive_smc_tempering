@@ -1,0 +1,27 @@
+prior:
+  run: Yes
+  num_parallel_chain: 10
+  num_mcmc_steps: 100
+  sequential_repetitions: 1
+  parallel_repetitions: 10
+  target_ess: 0.9
+  tempering_length: 10
+  OUTPUT_PATH: "./output/"
+  prefix: "main"
+  low_memory: No
+  problem:
+    base_measure: "prior"
+
+laplace:
+  run: Yes
+  num_parallel_chain: 10
+  num_mcmc_steps: 100
+  sequential_repetitions: 1
+  parallel_repetitions: 10
+  target_ess: 0.9
+  tempering_length: 10
+  OUTPUT_PATH: "./output/"
+  prefix: "main"
+  low_memory: No
+  problem:
+    base_measure_type: "laplace"

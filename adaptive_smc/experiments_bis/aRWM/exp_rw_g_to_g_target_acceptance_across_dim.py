@@ -7,9 +7,9 @@ import yaml
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
+from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 from adaptive_smc.experiments_bis.aRWM.problem import construct_my_prior_and_target
 from adaptive_smc.save_and_read_and_postprocess import save
-from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)
@@ -87,4 +87,3 @@ if __name__ == "__main__":
             for keys in all_keys:
                 for dim in range(1, 11):
                     experiment_rwmh(config, keys, dim)
-

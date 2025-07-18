@@ -4,12 +4,12 @@ from datetime import datetime
 import jax.numpy as jnp
 import jax.random
 import yaml
+from adaptive_smc.experiments_bis.gaussians.problem import construct_my_prior_and_target
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
-from adaptive_smc.experiments_bis.gaussians.problem import construct_my_prior_and_target
-from adaptive_smc.save_and_read_and_postprocess import save
 from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.save_and_read_and_postprocess import save
 
 jax.config.update("jax_enable_x64", False)
 jax.config.update("jax_disable_jit", False)

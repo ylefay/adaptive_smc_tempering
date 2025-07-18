@@ -7,18 +7,20 @@ import yaml
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
+from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 from adaptive_smc.experiments_bis.aRWM.problem import construct_my_prior_and_target
 from adaptive_smc.save_and_read_and_postprocess import save
-from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)
+
 
 def default_title(prefix=''):
     now = datetime.now()
 
     output_path = f"{prefix}_{os.path.basename(__file__)}_{now.strftime("%m%D%H%M%S").replace("/", "")}.pkl"
     return output_path
+
 
 def experiment_rwmh(config, keys):
     dim = config.get('dim')
@@ -35,8 +37,6 @@ def experiment_rwmh(config, keys):
     params_optimization_method = {"grid": jnp.linspace(0.01, 5, 500), "batch_size": 10}
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
-    tempering_length = config.get('tempering_length', 10 + dim)
-    my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
     init_param = jnp.array([2.38])
     config.update(
@@ -63,8 +63,9 @@ def experiment_rwmh(config, keys):
     else:
         @jax.vmap
         def wrapper_smc(key):
-            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess, save_disk_mem=True)
-            
+            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
+                              save_disk_mem=True)
+
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
 

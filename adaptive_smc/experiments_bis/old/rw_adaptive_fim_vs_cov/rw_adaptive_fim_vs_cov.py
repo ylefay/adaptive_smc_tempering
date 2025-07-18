@@ -4,12 +4,12 @@ from datetime import datetime
 import jax.numpy as jnp
 import jax.random
 import yaml
+from adaptive_smc.experiments_bis.comparison.problem import construct_my_prior_and_target
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
-from adaptive_smc.experiments_bis.uncoupled_ar_rw_proposal.problem import construct_my_prior_and_target
-from adaptive_smc.save_and_read_and_postprocess import save
 from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.save_and_read_and_postprocess import save
 
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)
@@ -39,8 +39,6 @@ def experiment_adaptive_cov_rw(config, keys):
     params_optimization_method = {"grid": tau_grid}
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
-    tempering_length = config.get('tempering_length', 10 + dim)
-    my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
     init_param = jnp.array([2.38])
     config.update(
@@ -78,7 +76,6 @@ def experiment_adaptive_invfim_rw(config, keys):
     optimization_method_str = "make_optimize_within_a_fixed_grid"
     params_optimization_method = {"grid": tau_grid}
 
-
     num_parallel_chain = config.get('num_parallel_chain')
     num_mcmc_steps = config.get('num_mcmc_steps')
     target_ess = config.get('target_ess')
@@ -99,7 +96,8 @@ def experiment_adaptive_invfim_rw(config, keys):
         optimization_method = None
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
-                                               my_proposal, optimization_method, grid_criteria=params_optimization_method['grid'])
+                                               my_proposal, optimization_method,
+                                               grid_criteria=params_optimization_method['grid'])
 
     @jax.vmap
     def wrapper_smc(key):

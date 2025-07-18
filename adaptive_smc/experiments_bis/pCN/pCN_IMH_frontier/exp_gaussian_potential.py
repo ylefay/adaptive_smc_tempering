@@ -8,9 +8,9 @@ import yaml
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
-from adaptive_smc.experiments_bis.uncoupled_ar_rw_proposal.anisotropic_gaussian.problem import construct_my_prior_and_target
-from adaptive_smc.save_and_read_and_postprocess import save
 from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.experiments_bis.comparison.anisotropic_gaussian.problem import construct_my_prior_and_target
+from adaptive_smc.save_and_read_and_postprocess import save
 
 """
 This methodology fails to detect the small temperature regime, why?

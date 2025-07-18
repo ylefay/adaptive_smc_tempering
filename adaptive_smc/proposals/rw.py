@@ -1,7 +1,8 @@
+from typing import Optional
+
 import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
-from typing import Optional
 
 from adaptive_smc.estimates import inverse_FIM_gaussian_approx, cov_estimate, cov_increment_estimate, estimate_I
 from adaptive_smc.smc_types import LogDensity, SMCStatebis, ProposalBuilder
@@ -19,10 +20,12 @@ __experimental_danger = ["build_gaussian_rwmh_proposal_with_nicolas_cov_estimate
                          "build_gaussian_rwmh_invfim_proposal_gamma",
                          "build_gaussian_rwmh_I_proposal_gamma"]
 
+
 def build_gaussian_rw_proposal(C: ArrayLike):
     """
     Gaussian RW with fixed covariance matrix C
     """
+
     def gaussian_rwmh_cov_log_proposal(x, y):
         return jax.scipy.stats.multivariate_normal.logpdf(y, x, C)
 
@@ -42,7 +45,8 @@ def build_gaussian_rwmh_cov_proposal(state: SMCStatebis, log_tgt_density_fn: Log
     return build_gaussian_rwmh_cov_proposal_gamma(state, log_tgt_density_fn, log_likelihood_fn, i, j)
 
 
-def build_gaussian_rwmh_cov_proposal_gamma(state: SMCStatebis, _: LogDensity, __: LogDensity, i: int, j: Optional[int]=None):
+def build_gaussian_rwmh_cov_proposal_gamma(state: SMCStatebis, _: LogDensity, __: LogDensity, i: int,
+                                           j: Optional[int] = None):
     """
     Same as build_gaussian_rwmh_cov_proposal with gamma**2/dim in front of the covariance matrix
     """
@@ -52,8 +56,8 @@ def build_gaussian_rwmh_cov_proposal_gamma(state: SMCStatebis, _: LogDensity, __
     log_weights = state.log_weights
     optimal_scale = gamma ** 2 / dim
 
-    if not j:
-        j = i
+    j = j or i
+
     def fun_to_be_called_if_j_greater_than_one():
         r"""
         Compute the covariance estimate of \pi_{t-1} given t\geq 1
@@ -71,7 +75,8 @@ def build_gaussian_rwmh_cov_proposal_gamma(state: SMCStatebis, _: LogDensity, __
     return gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler, jnp.empty(1)
 
 
-def build_gaussian_rwmh_invfim_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity, __: LogDensity, i: int, j: Optional[int]=None):
+def build_gaussian_rwmh_invfim_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity, __: LogDensity,
+                                              i: int, j: Optional[int] = None):
     """
         Same as build_gaussian_rwmh_cov_proposal with gamma**2/dim in front of the covariance matrix
         """
@@ -81,8 +86,7 @@ def build_gaussian_rwmh_invfim_proposal_gamma(state: SMCStatebis, log_tgt_densit
     log_weights = state.log_weights
     optimal_scale = gamma ** 2 / dim
 
-    if not j:
-        j=i
+    j = j or i
 
     def fun_to_be_called_if_j_greater_than_one():
         r"""
@@ -100,8 +104,10 @@ def build_gaussian_rwmh_invfim_proposal_gamma(state: SMCStatebis, log_tgt_densit
 
     return gaussian_rwmh_cov_log_proposal, gaussian_rwmh_sampler, jnp.empty(1)
 
+
 def build_gaussian_rwmh_proposal_with_nicolas_cov_estimate(state: SMCStatebis, _: LogDensity,
-                                                           log_likelihood_fn: LogDensity, i: int, j: Optional[int] = None):
+                                                           log_likelihood_fn: LogDensity, i: int,
+                                                           j: Optional[int] = None):
     r"""
     C is estimated using the particles and weights at iteration j-1,
     using the covariance increment estimate proposed by Nicolas.
@@ -119,8 +125,7 @@ def build_gaussian_rwmh_proposal_with_nicolas_cov_estimate(state: SMCStatebis, _
     gamma = state.mh_proposal_parameters.at[i - 1].get()
     optimal_scale = gamma ** 2 / dim
 
-    if not j:
-        j = i
+    j = j or i
 
     def fun_to_be_called_if_j_greater_than_one():
         r"""
@@ -147,7 +152,8 @@ def build_build_gaussian_rw_proposal(C: ArrayLike) -> ProposalBuilder:
     Fixed covariance matrix (up to the scaling parameter)
     """
 
-    def build_gaussian_rw_proposal_gamma(state: SMCStatebis, _: LogDensity, __: LogDensity, i: int, j: Optional[int]=None):
+    def build_gaussian_rw_proposal_gamma(state: SMCStatebis, _: LogDensity, __: LogDensity, i: int,
+                                         j: Optional[int] = None):
         gamma = state.mh_proposal_parameters.at[i - 1].get()
         particles = state.particles
         dim = particles.shape[-1]
@@ -159,9 +165,8 @@ def build_build_gaussian_rw_proposal(C: ArrayLike) -> ProposalBuilder:
     return build_gaussian_rw_proposal_gamma
 
 
-
-
-def build_gaussian_rwmh_I_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity, __: LogDensity, i: int, j:Optional[int]=None):
+def build_gaussian_rwmh_I_proposal_gamma(state: SMCStatebis, log_tgt_density_fn: LogDensity, __: LogDensity, i: int,
+                                         j: Optional[int] = None):
     """
     gamma**2/dim in front of the estimated I matrix
     """
@@ -171,8 +176,7 @@ def build_gaussian_rwmh_I_proposal_gamma(state: SMCStatebis, log_tgt_density_fn:
     log_weights = state.log_weights
     optimal_scale = gamma ** 2 / dim
 
-    if not j :
-        j = i
+    j = j or i
 
     def fun_to_be_called_if_j_greater_than_one():
         r"""

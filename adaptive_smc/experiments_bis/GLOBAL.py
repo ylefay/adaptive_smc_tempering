@@ -7,6 +7,7 @@ jax.config.update("jax_debug_nans", False)
 
 OP_key = jax.random.PRNGKey(0)
 
+
 def default_config():
     num_parallel_chain = 16
     num_mcmc_steps = 4000
@@ -26,4 +27,3 @@ def default_config():
               'sequential_repetitions': sequential_repetitions, 'seq_keys': seq_keys, 'all_keys': all_keys,
               'prefix': prefix}
     return config
-

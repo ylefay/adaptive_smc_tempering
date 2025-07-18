@@ -6,13 +6,12 @@ from jax import numpy as jnp, Array
 from jax.typing import ArrayLike
 
 
-
 def apply_vmap_batch(fun: Callable[[ArrayLike], ArrayLike], arg: ArrayLike, batch: Union[int, jnp.inf],
                      output_shape=()):
     """
     Given a vmappable function, apply it to arg in batch of size batch.
     """
-    output_shape = output_shape or  fun(arg[:1]).shape[1:]
+    output_shape = output_shape or fun(arg[:1]).shape[1:]
     if arg.ndim == 1:
         shape = (arg.shape[0], *output_shape)
     else:
@@ -25,7 +24,7 @@ def apply_vmap_batch(fun: Callable[[ArrayLike], ArrayLike], arg: ArrayLike, batc
     def iter(i, res):
         my_arg = jax.lax.dynamic_slice(arg, (i * batch, *(0,) * (arg.ndim - 1)), (batch, *arg.shape[1:]))
         _res = fun(my_arg)
-        res = jax.lax.dynamic_update_slice(res, _res, (i * batch, *(0, ) * (res.ndim - 1)))
+        res = jax.lax.dynamic_update_slice(res, _res, (i * batch, *(0,) * (res.ndim - 1)))
         return res
 
     res = jax.lax.cond(res.shape[0] // batch > 0,
@@ -33,6 +32,7 @@ def apply_vmap_batch(fun: Callable[[ArrayLike], ArrayLike], arg: ArrayLike, batc
                        lambda _: res, None)
     res = res.at[res.shape[0] // batch * batch:].set(fun(arg.at[res.shape[0] // batch * batch:].get()))
     return res
+
 
 def normalize_log_weights(log_weights: ArrayLike) -> Tuple[ArrayLike, float]:
     r"""
@@ -55,12 +55,12 @@ def log_ess(delta: float, log_weights: Array) -> float:
     return log_ess_scaled
 
 
-
 def vec(X: ArrayLike) -> Array:
     """
     Vectorization of a matrix.
     """
     return X.reshape(-1, order='F')
+
 
 def unvec(vecX: ArrayLike, shape=Optional[Tuple[int, int]]) -> Array:
     """
@@ -69,8 +69,6 @@ def unvec(vecX: ArrayLike, shape=Optional[Tuple[int, int]]) -> Array:
     if shape is None:
         shape = (int(vecX.shape[0] ** 0.5), int(vecX.shape[0] ** 0.5))
     return vecX.reshape(shape, order='F')
-
-
 
 
 def dichotomy(fun, min_delta, max_delta, eps=1e-4, max_iter=100):
@@ -140,4 +138,3 @@ def dichotomy(fun, min_delta, max_delta, eps=1e-4, max_iter=100):
         if_opt,
         None,
     )
-

@@ -5,11 +5,11 @@ import jax.numpy as jnp
 import jax.profiler
 import jax.random
 import yaml
-from adaptive_smc.experiments_bis.pCN.pCN_IMH_frontier.vanishing_gaussian_problem import construct_my_prior_and_target
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
 from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
+from adaptive_smc.experiments_bis.pCN.pCN_IMH_frontier.vanishing_gaussian_problem import construct_my_prior_and_target
 from adaptive_smc.save_and_read_and_postprocess import save
 
 """
@@ -33,8 +33,7 @@ def experiment_ar(config, keys, dim):
     rho_grid = jnp.linspace(0, 0.99, 100)
     config.update({'dim': dim})
     vanishing_order = config['problem'].get('vanishing_order_C', 1)
-    CovProposal = jnp.diag( 1 / jnp.arange(1, dim+1)**vanishing_order)
-
+    CovProposal = jnp.diag(1 / jnp.arange(1, dim + 1) ** vanishing_order)
 
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, jnp.zeros(dim), CovProposal)
@@ -42,7 +41,6 @@ def experiment_ar(config, keys, dim):
     def logbase_density_fn(x):
         return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim), cov=CovProposal)
 
-    
     target_ess = config.get('target_ess', None)
     num_parallel_chain = config.get('num_parallel_chain')
     num_mcmc_steps = config.get('num_mcmc_steps')
@@ -102,7 +100,7 @@ if __name__ == "__main__":
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
                 if name_of_my_config == 'config_lm_vanish_1_None':
-                    for dim in [1, 2, 3, 5, 10, 15, 30]: # 50, 75, 100
+                    for dim in [1, 2, 3, 5, 10, 15, 30]:  # 50, 75, 100
                         experiment_ar(config, keys, dim)
                 else:
                     for dim in [50, 75, 100]:

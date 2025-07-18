@@ -7,9 +7,9 @@ import yaml
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals
+from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 from adaptive_smc.experiments_bis.aRWM.problem import construct_my_prior_and_target
 from adaptive_smc.save_and_read_and_postprocess import save
-from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)
@@ -39,8 +39,6 @@ def experiment_rwmh(config, keys):
     params_optimization_method = {"grid": jnp.linspace(0.01, 5, 500)}
 
     loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
-    tempering_length = config.get('tempering_length', 10 + dim)
-    my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
     init_param = jnp.array([2.38])
     config.update(

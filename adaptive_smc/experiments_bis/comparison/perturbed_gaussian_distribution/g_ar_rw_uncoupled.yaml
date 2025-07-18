@@ -1,0 +1,13 @@
+config:
+  run: Yes
+  num_parallel_chain: 10
+  num_mcmc_steps: 100
+  sequential_repetitions: 1
+  parallel_repetitions: 10
+  target_ess: 0.9
+  dim: 1
+  OUTPUT_PATH: "./output/"
+  prefix: "main"
+  problem:
+    tau: 1
+    beta: 1
