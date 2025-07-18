@@ -32,9 +32,17 @@ def default_title(prefix=''):
 def experiment_ar(config, keys, dim):
     rho_grid = jnp.linspace(0, 0.99, 100)
     config.update({'dim': dim})
-    vanishing_order = config['problem'].get('vanishing_order', 1)
+    vanishing_order = config['problem'].get('vanishing_order_C', 1)
     CovProposal = jnp.diag( 1 / jnp.arange(1, dim+1)**vanishing_order)
 
+
+    def base_measure_sampler(key):
+        return jax.random.multivariate_normal(key, jnp.zeros(dim), CovProposal)
+
+    def logbase_density_fn(x):
+        return jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim), cov=CovProposal)
+
+    
     target_ess = config.get('target_ess', None)
     num_parallel_chain = config.get('num_parallel_chain')
     num_mcmc_steps = config.get('num_mcmc_steps')
@@ -43,7 +51,7 @@ def experiment_ar(config, keys, dim):
 
     params_optimization_method = {"grid": rho_grid, "batch_size": 10}
 
-    loglikelihood_fn, base_measure_sampler, logbase_density_fn = construct_my_prior_and_target(config)
+    loglikelihood_fn = construct_my_prior_and_target(config)
     tempering_length = config.get('tempering_length', dim + 5)
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
@@ -93,5 +101,9 @@ if __name__ == "__main__":
             all_keys = jax.vmap(lambda k: jax.random.split(k, parallel_repetitions))(seq_keys)
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
-                for dim in [1, 2, 3, 5, 10, 15, 30]: # 50, 75, 100
-                    experiment_ar(config, keys, dim)
+                if name_of_my_config == 'config_lm_vanish_1_None':
+                    for dim in [1, 2, 3, 5, 10, 15, 30]: # 50, 75, 100
+                        experiment_ar(config, keys, dim)
+                else:
+                    for dim in [50, 75, 100]:
+                        experiment_ar(config, keys, dim)

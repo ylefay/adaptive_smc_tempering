@@ -96,5 +96,5 @@ if __name__ == "__main__":
             all_keys = jax.vmap(lambda k: jax.random.split(k, parallel_repetitions))(seq_keys)
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
-                for dim in [15, 30, 50, 75, 100]: #[1, 2, 3, 5, 10, 15, 30, 50, 75, 100]
+                for dim in [100]: #[1, 2, 3, 5, 10, 15, 30, 50, 75, 100]
                     experiment_ar(config, keys, dim)
