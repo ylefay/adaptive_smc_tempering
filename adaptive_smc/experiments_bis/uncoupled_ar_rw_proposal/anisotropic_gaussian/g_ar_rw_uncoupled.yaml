@@ -1,6 +1,6 @@
 config_dim5:
   run: Yes
-  num_parallel_chain: 100
+  num_parallel_chain: 10
   num_mcmc_steps: 1000
   sequential_repetitions: 100
   parallel_repetitions: 1
@@ -10,7 +10,7 @@ config_dim5:
   prefix: "config_dim5"
   problem:
     latent_dim: 1
-    tau: 0.393919298579168
+    tau: 0.5
 
 
 
