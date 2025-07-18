@@ -1,3 +1,5 @@
+from typing import Tuple
+
 import jax.numpy as jnp
 
 from adaptive_smc.experiments_bis.GLOBAL import *
@@ -33,3 +35,15 @@ def construct_my_prior_and_target(config):
     return loglikelihood_fn, base_measure_sampler, logbase_density_fn
 
 
+def sample_from_wishart(key, degree, scale):
+    p = scale.shape[0]
+
+    def body_fun(_, vals: Tuple[jnp.ndarray, jax.Array]):
+        val, key = vals
+        g = jax.random.multivariate_normal(key, jnp.zeros(p), scale).reshape((p, 1))
+        _, key = jax.random.split(key)
+        return val + g @ g.T, key
+
+    S, _ = jax.lax.fori_loop(0, degree, body_fun, (jnp.zeros((p, p)), key))
+
+    return S
