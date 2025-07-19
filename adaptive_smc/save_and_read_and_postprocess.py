@@ -6,10 +6,12 @@ import jax.lax
 import jax.numpy as jnp
 
 
-def save(res, config, output_path=""):
-    """
+def save(res, config, output_path="", compress=False):
+    r"""
     Saving in a PKL file the config dictionnary and the output of the SMC sampler.
-    In addition, a plot of the means with error bars for each tempered distribution is saved in a PNG file.
+
+    if `compress` is True, the samples, weights and criterion are converted to float16
+    to save disk space (about a 75\% storage saving).
     """
     # Extract directory from output_path
     directory = os.path.dirname(output_path)
@@ -17,6 +19,17 @@ def save(res, config, output_path=""):
     # Create directory if it doesn't exist
     if directory and not os.path.exists(directory):
         os.makedirs(directory)
+
+    if compress:
+        fields_to_compress = [0, 1, 2, 3, 5, 9]
+        res_generator = (
+            jax.tree_util.tree_map(lambda x: x.astype(jnp.float16), field) if idx in fields_to_compress else field
+            for
+            idx, field in enumerate(res))
+        res = []
+        for el in res_generator:
+            res.append(el)
+        res = tuple(res)
 
     with open(output_path, 'wb') as handle:
         pickle.dump({'config': config, 'res': res}, handle, protocol=pickle.HIGHEST_PROTOCOL)

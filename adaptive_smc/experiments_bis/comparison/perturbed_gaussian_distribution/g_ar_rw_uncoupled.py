@@ -67,7 +67,7 @@ def experiment_pCN(config, keys):
                           save_disk_mem=False)
 
     res = wrapper_smc(keys)
-    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
+    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')),  config.get('compress_output', False))
 
 
 def experiment_adaptive_rw(config, keys):
@@ -111,7 +111,7 @@ def experiment_adaptive_rw(config, keys):
                           save_disk_mem=False)
 
     res = wrapper_smc(keys)
-    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
+    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')),  config.get('compress_output', False))
 
 
 def experiment_arw(config, keys):
@@ -157,7 +157,7 @@ def experiment_arw(config, keys):
                           save_disk_mem=False)
 
     res = wrapper_smc(keys)
-    save(res, config, config.get('OUTPUT_PATH') + default_title(config['prefix']))
+    save(res, config, config.get('OUTPUT_PATH') + default_title(config['prefix']), config.get('compress_output', False))
 
 
 if __name__ == "__main__":
@@ -173,6 +173,6 @@ if __name__ == "__main__":
             all_keys = jax.vmap(lambda k: jax.random.split(k, parallel_repetitions))(seq_keys)
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
-                experiment_pCN(config, keys)
-                experiment_adaptive_rw(config, keys)
+                #experiment_pCN(config, keys)
+                #experiment_adaptive_rw(config, keys)
                 experiment_arw(config, keys)

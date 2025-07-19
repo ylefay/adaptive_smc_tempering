@@ -66,7 +66,7 @@ def experiment_pCN(config, keys):
                           save_disk_mem=False)
 
     res = wrapper_smc(keys)
-    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
+    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')), config.get('compress_output', False))
 
 
 def experiment_adaptive_rw(config, keys):
@@ -111,7 +111,7 @@ def experiment_adaptive_rw(config, keys):
                           save_disk_mem=False)
 
     res = wrapper_smc(keys)
-    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')))
+    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')), config.get('compress_output', False))
 
 
 def experiment_arw(config, keys):
@@ -157,7 +157,7 @@ def experiment_arw(config, keys):
                           save_disk_mem=False)
 
     res = wrapper_smc(keys)
-    save(res, config, config.get('OUTPUT_PATH') + default_title(config['prefix']))
+    save(res, config, config.get('OUTPUT_PATH') + default_title(config['prefix']), config.get('compress_output', False))
 
 
 if __name__ == "__main__":

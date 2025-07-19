@@ -1,5 +1,5 @@
 prior:
-  run: Yes
+  run: No
   num_parallel_chain: 10
   num_mcmc_steps: 10000
   sequential_repetitions: 1
@@ -9,13 +9,14 @@ prior:
   OUTPUT_PATH: "./output/"
   prefix: "main"
   low_memory: No
+  compress_output: Yes
   problem:
     base_measure: "prior"
 
 laplace:
   run: Yes
   num_parallel_chain: 10
-  num_mcmc_steps: 10000
+  num_mcmc_steps: 50000
   sequential_repetitions: 1
   parallel_repetitions: 1
   target_ess: No
@@ -23,5 +24,6 @@ laplace:
   OUTPUT_PATH: "./output/"
   prefix: "main"
   low_memory: No
+  compress_output: Yes
   problem:
     base_measure_type: "laplace"
