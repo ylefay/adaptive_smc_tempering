@@ -14,20 +14,19 @@ def get_log_likelihood(flipped_predictors, cdf=logistic):
     assuming a Gaussian prior.
     """
     if cdf == logistic:
-        def tgt_log_density(beta):
-            # logcdf = - jnp.log1p(jnp.exp(-jnp.einsum('ij,...j->...i', flipped_predictors, beta))) # compatible both for multiple and single inputs
+        def log_likelihood_fn(beta):
             logcdf = -jnp.log1p(jnp.exp(-flipped_predictors @ beta.T))
             logcdf = jnp.nan_to_num(logcdf, False, nan=0.0, posinf=0.0, neginf=0.0)
             log_likelihood = jnp.sum(logcdf, axis=-1)
             return log_likelihood
     else:
-        def tgt_log_density(beta):
+        def log_likelihood_fn(beta):
             logcdf = jnp.log(cdf(flipped_predictors @ beta.T))
             logcdf = jnp.nan_to_num(logcdf, False, nan=0.0, posinf=0.0, neginf=0.0)
             log_likelihood = jnp.sum(logcdf, axis=-1)
             return log_likelihood
 
-    return tgt_log_density
+    return log_likelihood_fn
 
 def get_tgt_log_density(flipped_predictors, log_prior_fn, cdf=logistic):
     return lambda beta: get_log_likelihood(flipped_predictors, cdf)(beta) + log_prior_fn(beta)

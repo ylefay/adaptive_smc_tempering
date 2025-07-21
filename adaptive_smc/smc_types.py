@@ -30,5 +30,5 @@ type ProposalBuilder = Callable[
 type OptimisingProcedure = Callable[
     [Callable[[ArrayLike], ArrayLike], ArrayLike], ArrayLike]
 
-# The second integer is exactly for the same reason as the second one in ProposalBuilder
+# The second integer is exactly there for the same reason as the second one in ProposalBuilder
 type CriteriaFunction = Callable[[ArrayLike, ArrayLike, SMCStatebis, int, int], ArrayLike]

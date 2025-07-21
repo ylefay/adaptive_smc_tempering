@@ -38,13 +38,15 @@ def get_log_likelihood_fn(y, m):
 
 
 def construct_target_and_prior(y):
-    """"We hardcode the config.
-    Return the log likelihood and log target function
+    """
+    The configuration from Section 4.5 of
+    Adaptive tuning of hamiltonian monte carlo within sequential monte carlo,
+    is hard-coded in this function.
     """
     sigmasq = 1.91
     beta = 1 / 33
     d = int(jnp.sqrt(y.shape[0]))
-    mu = (jnp.log(126) - sigmasq / 2) * jnp.ones(d**2)
+    mu = (jnp.log(126) - sigmasq / 2) * jnp.ones(d ** 2)
     m = 1 / d ** 2
 
     def delta_fn(j, jp, k, kp):

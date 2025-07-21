@@ -1,6 +1,5 @@
 import jax.numpy as jnp
-
-from adaptive_smc.experiments_bis.GLOBAL import *
+import jax
 
 
 def construct_my_prior_and_target(config):
