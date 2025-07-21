@@ -1,0 +1,15 @@
+laplace_10:
+  run: Yes
+  num_parallel_chain: 8
+  num_mcmc_steps: 100
+  sequential_repetitions: 1
+  parallel_repetitions: 1
+  target_ess: No
+  tempering_length: 50
+  OUTPUT_PATH: "./output/"
+  prefix: "main"
+  low_memory: No
+  compress_output: Yes
+  problem:
+    grid_size: 10 # the particle dimension is grid_size**2.
+    base_measure_type: "laplace"

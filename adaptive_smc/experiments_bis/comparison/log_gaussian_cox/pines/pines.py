@@ -8,7 +8,7 @@ import yaml
 from adaptive_smc import optimise
 from adaptive_smc import proposals
 from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
-from adaptive_smc.experiments_bis.comparison.logistic_regression.Sonar.problem import construct_my_prior_and_target
+from adaptive_smc.experiments_bis.comparison.log_gaussian_cox.pines.problem import construct_invariant_measure_and_target
 from adaptive_smc.save_and_read_and_postprocess import save
 
 OP_key = jax.random.PRNGKey(0)
@@ -39,7 +39,7 @@ def experiment_pCN(config, keys):
     params_optimization_method = {"grid": rho_grid, "batch_size": 10}
     # params_optimization_method = {"minmax": [0.1, 10.], "interval": [-5., 5.], "n_iter":4}
 
-    loglikelihood_fn, base_measure_sampler, logbase_density_fn, base_measure_mean, base_measure_cov = construct_my_prior_and_target(
+    loglikelihood_fn, base_measure_sampler, logbase_density_fn, base_measure_mean, base_measure_cov = construct_invariant_measure_and_target(
         config)
 
     init_param = jnp.array([0])
@@ -83,7 +83,7 @@ def experiment_adaptive_rw(config, keys):
 
     params_optimization_method = {"grid": tau_grid, "batch_size": 10}
 
-    loglikelihood_fn, base_measure_sampler, logbase_density_fn, _, __ = construct_my_prior_and_target(config)
+    loglikelihood_fn, base_measure_sampler, logbase_density_fn, _, __ = construct_invariant_measure_and_target(config)
     tempering_length = config.get('tempering_length')
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
@@ -121,7 +121,7 @@ def experiment_arw(config, keys):
     tempering_length = config.get('tempering_length')
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
-    loglikelihood_fn, base_measure_sampler, logbase_density_fn, base_measure_mean, base_measure_cov = construct_my_prior_and_target(
+    loglikelihood_fn, base_measure_sampler, logbase_density_fn, base_measure_mean, base_measure_cov = construct_invariant_measure_and_target(
         config)
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
@@ -161,7 +161,7 @@ def experiment_arw(config, keys):
 
 
 if __name__ == "__main__":
-    yaml_file = "sonar.yaml"
+    yaml_file = "pines.yaml"
     with open(yaml_file, "r") as file:
         y_config = yaml.load(file, Loader=yaml.FullLoader)
 
