@@ -5,7 +5,6 @@ import jax
 import jax.lax
 import jax.numpy as jnp
 
-
 def save(res, config, output_path="", compress=False, rapid_pkl=False):
     r"""
     Saving in a PKL file the config dictionnary and the output of the SMC sampler.
@@ -37,8 +36,7 @@ def save(res, config, output_path="", compress=False, rapid_pkl=False):
     with open(output_path, 'wb') as handle:
         pickle.dump({'config': config, 'res': res}, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    splitted_output_path = output_path.split('.pkl')
-    with open("".join(splitted_output_path[:-1]) + '_small_' + splitted_output_path[-1], 'rb') as handle:
+    with open(output_path+'_small', 'wb') as handle:
         pickle.dump({'config': config, 'res': (
             None, None, None, res[3], None, res[5], res[6], None, res[8], None
         )}, handle, protocol=pickle.HIGHEST_PROTOCOL)
