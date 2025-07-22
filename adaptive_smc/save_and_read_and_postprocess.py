@@ -6,12 +6,15 @@ import jax.lax
 import jax.numpy as jnp
 
 
-def save(res, config, output_path="", compress=False):
+def save(res, config, output_path="", compress=False, rapid_pkl=False):
     r"""
     Saving in a PKL file the config dictionnary and the output of the SMC sampler.
 
     if `compress` is True, the samples, weights and criterion are converted to float16
     to save disk space (about a 75\% storage saving).
+
+    if `rapid_pkl` is True, there is a secondary pickle file created
+    containing only the sequence of MH parameters, of temperatures, and log normalisation constants.
     """
     # Extract directory from output_path
     directory = os.path.dirname(output_path)
@@ -33,6 +36,12 @@ def save(res, config, output_path="", compress=False):
 
     with open(output_path, 'wb') as handle:
         pickle.dump({'config': config, 'res': res}, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    splitted_output_path = output_path.split('.pkl')
+    with open("".join(splitted_output_path[:-1]) + '_small_' + splitted_output_path[-1], 'rb') as handle:
+        pickle.dump({'config': config, 'res': (
+            None, None, None, res[3], None, res[5], res[6], None, res[8], None
+        )}, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def acf(samples, max_order=20, diag=True):
@@ -144,6 +153,12 @@ def correct_acf(samples, max_order=20):
     using the global mean as the stationary mean of the chain, and
     averaging over n_parallel_run*n_chain chains the computed autocorrelations.
     """
+    # Cast into float32 to avoid nan due to numerical imprecision
+    # (in particular when dividing vark by var0)
+    samples = samples.astype(jnp.float32)
+
+    n_iter = samples.shape[1]
+    dim = samples.shape[-1]
     samples = jnp.swapaxes(samples, 0, 1)
     samples = samples.reshape(
         (samples.shape[0], samples.shape[1] * samples.shape[2], samples.shape[3], samples.shape[4]))
@@ -163,5 +178,7 @@ def correct_acf(samples, max_order=20):
         corr = jnp.mean(vark / var0, axis=[-3])
         return corr
 
-    acf_result = jnp.array([fcorr(k) for k in range(1, max_order + 1)])
+    acf_result = jnp.zeros((max_order, n_iter, dim, dim), dtype=jnp.float16)
+    for order in range(1, max_order + 1):
+        acf_result = acf_result.at[order - 1].set(fcorr(order))
     return acf_result
