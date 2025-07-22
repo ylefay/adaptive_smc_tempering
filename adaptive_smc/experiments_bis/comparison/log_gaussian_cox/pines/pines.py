@@ -8,7 +8,8 @@ import yaml
 from adaptive_smc import optimise
 from adaptive_smc import proposals
 from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
-from adaptive_smc.experiments_bis.comparison.log_gaussian_cox.pines.problem import construct_invariant_measure_and_target
+from adaptive_smc.experiments_bis.comparison.log_gaussian_cox.pines.problem import \
+    construct_invariant_measure_and_target
 from adaptive_smc.save_and_read_and_postprocess import save
 
 OP_key = jax.random.PRNGKey(0)
@@ -66,7 +67,8 @@ def experiment_pCN(config, keys):
                           save_disk_mem=False)
 
     res = wrapper_smc(keys)
-    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')), config.get('compress_output', False))
+    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')),
+         config.get('compress_output', False))
 
 
 def experiment_adaptive_rw(config, keys):
@@ -111,7 +113,8 @@ def experiment_adaptive_rw(config, keys):
                           save_disk_mem=False)
 
     res = wrapper_smc(keys)
-    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')), config.get('compress_output', False))
+    save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')),
+         config.get('compress_output', False))
 
 
 def experiment_arw(config, keys):
@@ -173,6 +176,6 @@ if __name__ == "__main__":
             all_keys = jax.vmap(lambda k: jax.random.split(k, parallel_repetitions))(seq_keys)
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
-                experiment_pCN(config, keys)
-                experiment_adaptive_rw(config, keys)
+                #experiment_pCN(config, keys)
                 experiment_arw(config, keys)
+                experiment_adaptive_rw(config, keys)

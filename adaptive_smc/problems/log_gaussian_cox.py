@@ -36,6 +36,11 @@ def get_log_likelihood_fn(y, m):
 
     return log_likelihood_fn
 
+def get_jac_log_likelihood_fn(y, m):
+    def jac_log_likelihood_fn(x):
+        return y - m * jnp.exp(x)
+    return jac_log_likelihood_fn
+
 
 def construct_target_and_prior(y):
     """
