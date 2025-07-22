@@ -17,7 +17,6 @@ def square_distance(x: ArrayLike, y: ArrayLike, _: SMCStatebis, __: int, ___=Non
 
 def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCStatebis, i: int, j: Optional[int] = None) -> ArrayLike:
     r"""
-    First possibility (only?)
     At iteration i,
         for particles x_i ~ \pi_{i-1},
         compute the Mahalanobis distances between x and y.
@@ -25,7 +24,7 @@ def mahalanobis(x: ArrayLike, y: ArrayLike, state: SMCStatebis, i: int, j: Optio
 
             Example of application:
             maximising mahalanobis ESJD at iteration i, to compute \theta_{i+1} parameterizing q_{i+1}, leaving
-            \pi_{i} invariant (which is why we estimate the cov under \pi_{i}).
+            \pi_{i} invariant.
 
     """
 

@@ -1,7 +1,6 @@
 import jax.numpy as jnp
 import jax.random
 
-from adaptive_smc.experiments_bis.GLOBAL import *
 from adaptive_smc.problems.gaussian import create_sparse_problem
 
 
@@ -14,15 +13,12 @@ def construct_my_prior_and_target(config):
     if latent_dim is set to 0, the target is N(1, tau**2 * I) \beta + (1-\beta) N(0, tau'**2 I)
     """
 
-    r"""
-    Take the log-likehood function such that the target is correct.
-    """
-
     problem = config.get('problem')
     latent_dim = problem.get('latent_dim', 0)
     tau = problem.get('tau')
     tau2 = problem.get('tau2')
     dim = config.get('dim')
+    weight = problem.get('weight', 0.1)
 
     logpdf1 = create_sparse_problem(dim, latent_dim=latent_dim, mean=-jnp.ones(dim),
                                     scale=1 / (1 / tau ** 2))
@@ -30,7 +26,7 @@ def construct_my_prior_and_target(config):
                                     scale=1 / (1 / tau2 ** 2))
 
     def loglikelihood_fn(x):
-        log_tgt_distrib = jnp.log(0.1 * jnp.exp(logpdf1(x)) + 0.9 * jnp.exp(logpdf2(x)))
+        log_tgt_distrib = jnp.log(weight * jnp.exp(logpdf1(x)) + (1 - weight) * jnp.exp(logpdf2(x)))
         log_prior = jax.scipy.stats.multivariate_normal.logpdf(x, mean=jnp.zeros(dim),
                                                                cov=jnp.eye(dim))
         ll = log_tgt_distrib - log_prior

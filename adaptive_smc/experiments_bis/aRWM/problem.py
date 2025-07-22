@@ -1,6 +1,6 @@
 import jax.numpy as jnp
+import jax
 
-from adaptive_smc.experiments_bis.GLOBAL import *
 from adaptive_smc.problems.gaussian import create_sparse_problem
 
 

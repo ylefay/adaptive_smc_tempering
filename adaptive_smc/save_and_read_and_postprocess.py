@@ -25,7 +25,7 @@ def save(res, config, output_path="", compress=False):
         res_generator = (
             jax.tree_util.tree_map(lambda x: x.astype(jnp.float16), field) if idx in fields_to_compress else field
             for
-            idx, field in enumerate(res))
+        idx, field in enumerate(res))
         res = []
         for el in res_generator:
             res.append(el)
@@ -41,7 +41,7 @@ def acf(samples, max_order=20, diag=True):
     Journal of Computational and Graphical Statistics, 31(3), 629–638.
     https://doi.org/10.1080/10618600.2022.2037433
 
-    Make ACF function for different iterations given set of samples (either particles or
+    Compute ACF given set of samples (either particles or
     function evaluated particles) of shape (n_parallel_run, n_iterations, n_chain, n_length_of_chain, dim).
     It transforms the samples into a shape (n_iterations, n_parallel_run*n_chain, n_length_of_chain, dim)
     And compute the AC for order 1 to max_order, using the global mean as the stationary mean of the chain,
@@ -137,7 +137,7 @@ def correct_acf(samples, max_order=20):
     """
     Agarwal, M., & Vats, D. (2022). Globally Centered Autocovariances in MCMC. Journal of Computational and Graphical Statistics, 31(3), 629–638. https://doi.org/10.1080/10618600.2022.2037433
 
-    Make ACF function for different iterations given set of samples (either particles or
+    Make ACF given set of samples (either particles or
     function evaluated particles) of shape (n_parallel_run, n_iterations, n_chain, n_length_of_chain, dim).
     It transforms the samples into a shape (n_iterations, n_parallel_run*n_chain, n_length_of_chain, dim)
     And compute the AC for order 1 to max_order,
@@ -165,15 +165,3 @@ def correct_acf(samples, max_order=20):
 
     acf_result = jnp.array([fcorr(k) for k in range(1, max_order + 1)])
     return acf_result
-
-
-if __name__ == "__main__":
-    jax.config.update("jax_disable_jit", True)
-    U = jax.random.PRNGKey(0)
-    samples = jax.random.uniform(U, shape=(5, 2, 10, 100, 4))
-
-    acf_jax = acf(samples, 5)
-    acf_np = acf2(samples, 5)
-
-    acf_correct = correct_acf(samples, 5)
-    pass
