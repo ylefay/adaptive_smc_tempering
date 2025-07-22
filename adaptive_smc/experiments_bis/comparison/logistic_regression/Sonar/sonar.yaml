@@ -16,11 +16,11 @@ prior:
 laplace:
   run: Yes
   num_parallel_chain: 10
-  num_mcmc_steps: 50000
-  sequential_repetitions: 1
-  parallel_repetitions: 1
-  target_ess: No
-  tempering_length: 50
+  num_mcmc_steps: 10000 #25000
+  sequential_repetitions: 20
+  parallel_repetitions: 5
+  target_ess: 0.5
+  tempering_length: 7
   OUTPUT_PATH: "./output/"
   prefix: "main"
   low_memory: No

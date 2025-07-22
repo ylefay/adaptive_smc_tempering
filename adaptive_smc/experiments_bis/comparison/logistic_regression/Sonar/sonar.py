@@ -173,7 +173,6 @@ if __name__ == "__main__":
             all_keys = jax.vmap(lambda k: jax.random.split(k, parallel_repetitions))(seq_keys)
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
-                #experiment_pCN(config, keys)
-                jax.config.update('jax_disable_jit', True)
+                experiment_pCN(config, keys)
                 experiment_adaptive_rw(config, keys)
-                #experiment_arw(config, keys)
+                experiment_arw(config, keys)

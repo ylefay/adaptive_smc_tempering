@@ -24,7 +24,8 @@ def construct_my_prior_and_target(config):
     base_measure_mean = my_prior_mean
     base_measure_cov = my_prior_covariance
 
-    if base_measure_type == "Laplace":  # i.e., Laplace
+
+    if base_measure_type == "laplace":  # i.e., Laplace
         my_tgt_log_density = lambda x: loglikelihood_fn(x) + jax.scipy.stats.multivariate_normal.logpdf(x,
                                                                                                         mean=my_prior_mean,
                                                                                                         cov=my_prior_covariance)
@@ -32,6 +33,9 @@ def construct_my_prior_and_target(config):
         _, m, C = laplace_approximation(my_tgt_log_density, my_prior_mean)
         base_measure_mean = m
         base_measure_cov = C
+        _loglikelihood_fn = lambda x: my_tgt_log_density(x) - jax.scipy.stats.multivariate_normal.logpdf(x,
+                                                                                             mean=base_measure_mean,
+                                                                                             cov=base_measure_cov)
 
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, mean=base_measure_mean,
@@ -40,5 +44,7 @@ def construct_my_prior_and_target(config):
     def logbase_density_fn(x):
         return jax.scipy.stats.multivariate_normal.logpdf(x, mean=base_measure_mean,
                                                           cov=base_measure_cov)
+    
+    _loglikelihood_fn = loglikelihood_fn
 
-    return loglikelihood_fn, base_measure_sampler, logbase_density_fn, base_measure_mean, base_measure_cov
+    return _loglikelihood_fn, base_measure_sampler, logbase_density_fn, base_measure_mean, base_measure_cov
