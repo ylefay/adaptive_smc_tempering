@@ -1,4 +1,4 @@
-from typing import Callable
+from typing import Callable, Optional
 
 import jax
 import jax.numpy as jnp
@@ -22,12 +22,12 @@ def newton_descent(loss: Callable, init: ArrayLike, step_size: float = 1):
     return x, jnp.linalg.pinv(jax.hessian(loss)(x))
 
 
-def bfgs_wrapper(loss: Callable, init: ArrayLike):
-    res = scipy.optimize.minimize(loss, init, method="BFGS")
+def bfgs_wrapper(loss: Callable, init: ArrayLike, jac: Optional[Callable] = None):
+    res = scipy.optimize.minimize(loss, init, method="BFGS", jac=jac)
     return res.x, res.hess_inv
 
 
-def laplace_approximation(log_density: Callable, init: ArrayLike, optimization_method=bfgs_wrapper):
+def laplace_approximation(log_density: Callable, init: ArrayLike, optimization_method=bfgs_wrapper, log_density_jac: Optional[Callable] = None):
     """
     Compute the Laplace approximation of a density.
     See
@@ -39,5 +39,11 @@ def laplace_approximation(log_density: Callable, init: ArrayLike, optimization_m
     def loss(theta):
         return -log_density(theta)
 
-    x, hess_inv = optimization_method(loss, init)
+    if log_density_jac:
+        def jac_loss(theta):
+            return -log_density_jac(theta)
+    else:
+        jac_loss = None
+
+    x, hess_inv = optimization_method(loss, init, jac=jac_loss)
     return -log_density(x), x, hess_inv
