@@ -553,9 +553,6 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
         """
 
-        jax.config.update("jax_enable_x64", False)
-        jax.config.update("XLA_PYTHON_CLIENT_ALLOCATOR", "platform")
-
         iteration = len(tempering_sequence) - 1
         diff_tempering_sequence = jnp.diff(tempering_sequence)
         diff_tempering_sequence = jnp.insert(diff_tempering_sequence, 0, tempering_sequence.at[0].get())

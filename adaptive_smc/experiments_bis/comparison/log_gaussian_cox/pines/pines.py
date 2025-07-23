@@ -1,4 +1,9 @@
 import os
+import jax
+
+jax.config.update("jax_enable_x64", False)
+os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
+
 from datetime import datetime
 
 import jax.numpy as jnp
@@ -14,8 +19,6 @@ from adaptive_smc.save_and_read_and_postprocess import save
 
 OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)
-
-jax.config.update("jax_enable_x64", True)
 
 
 def default_title(prefix=''):
