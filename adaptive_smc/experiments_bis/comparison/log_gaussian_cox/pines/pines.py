@@ -44,7 +44,6 @@ def experiment_pCN(config, keys):
         config)
 
     init_param = jnp.array([0])
-    init_param = jnp.array([0.5])
     config.update(
         {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
          "proposal": "build_build_autoregressive_gaussian_proposal",
@@ -62,10 +61,16 @@ def experiment_pCN(config, keys):
                                                grid_criteria=params_optimization_method['grid'],
                                                batch_size_criteria=10)
 
-    @jax.vmap
-    def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                          save_disk_mem=False)
+    if config.get('low_memory', False):
+        @jax.vmap
+        def wrapper_smc(key):
+            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
+                              save_disk_mem=True)
+    else:
+        @jax.vmap
+        def wrapper_smc(key):
+            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
+                              save_disk_mem=True)
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')),
@@ -80,7 +85,6 @@ def experiment_adaptive_rw(config, keys):
     num_mcmc_steps = config.get('num_mcmc_steps')
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
-
 
     tempering_length = config.get('tempering_length')
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
@@ -109,10 +113,16 @@ def experiment_adaptive_rw(config, keys):
                                                grid_criteria=params_optimization_method['grid'],
                                                batch_size_criteria=10)
 
-    @jax.vmap
-    def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                          save_disk_mem=False)
+    if config.get('low_memory', False):
+        @jax.vmap
+        def wrapper_smc(key):
+            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
+                              save_disk_mem=True)
+    else:
+        @jax.vmap
+        def wrapper_smc(key):
+            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
+                              save_disk_mem=True)
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')),
@@ -139,7 +149,7 @@ def experiment_arw(config, keys):
     target_ess = config.get('target_ess')
 
     init_param = jnp.array([0., 1.])
-    init_param = jnp.array([0.5, 2.38**2/36])
+    init_param = jnp.array([0., 2.38 ** 2 / config['problem']['grid_size'] ** 2])
 
     config.update(
         {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
@@ -158,10 +168,16 @@ def experiment_arw(config, keys):
                                                my_proposal, optimization_method, grid_criteria=params_grid,
                                                batch_size_criteria=10)
 
-    @jax.vmap
-    def wrapper_smc(key):
-        return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                          save_disk_mem=False)
+    if config.get('low_memory', False):
+        @jax.vmap
+        def wrapper_smc(key):
+            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
+                              save_disk_mem=True)
+    else:
+        @jax.vmap
+        def wrapper_smc(key):
+            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
+                              save_disk_mem=True)
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config['prefix']), config.get('compress_output', False))
