@@ -32,7 +32,7 @@ def get_log_likelihood_fn(y, m):
     """
 
     def log_likelihood_fn(x):
-        return - jnp.sum(y * x - m * jnp.exp(x))
+        return jnp.sum(y * x - m * jnp.exp(x))
 
     return log_likelihood_fn
 
