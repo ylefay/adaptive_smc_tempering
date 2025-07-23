@@ -44,6 +44,7 @@ def experiment_pCN(config, keys):
         config)
 
     init_param = jnp.array([0])
+    init_param = jnp.array([0.5])
     config.update(
         {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
          "proposal": "build_build_autoregressive_gaussian_proposal",
@@ -54,7 +55,7 @@ def experiment_pCN(config, keys):
     if config['optimization_method']:
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
     else:
-        optimization_method = None
+        optimization_method = optimise.make_constant()
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                my_proposal, optimization_method,
@@ -80,6 +81,7 @@ def experiment_adaptive_rw(config, keys):
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
 
+
     tempering_length = config.get('tempering_length')
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
@@ -100,7 +102,7 @@ def experiment_adaptive_rw(config, keys):
     if config['optimization_method']:
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
     else:
-        optimization_method = None
+        optimization_method = optimise.make_constant()
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                my_proposal, optimization_method,
@@ -128,6 +130,7 @@ def experiment_arw(config, keys):
         config)
 
     optimization_method_str = "make_optimize_within_a_fixed_grid"
+
     params_grid = jnp.array([[x, y] for x in rho_grid for y in tau_grid])
     params_optimization_method = {"grid": params_grid, "batch_size": 10}
 
@@ -136,6 +139,7 @@ def experiment_arw(config, keys):
     target_ess = config.get('target_ess')
 
     init_param = jnp.array([0., 1.])
+    init_param = jnp.array([0.5, 2.38**2/36])
 
     config.update(
         {"optimization_method": optimization_method_str, "params_optimization_method": params_optimization_method,
@@ -148,7 +152,7 @@ def experiment_arw(config, keys):
     if config['optimization_method']:
         optimization_method = getattr(optimise, config['optimization_method'])(**params_optimization_method)
     else:
-        optimization_method = None
+        optimization_method = optimise.make_constant()
 
     smc = GenericAdaptiveWasteFreeTemperingSMC(logbase_density_fn, base_measure_sampler, loglikelihood_fn,
                                                my_proposal, optimization_method, grid_criteria=params_grid,
@@ -176,6 +180,6 @@ if __name__ == "__main__":
             all_keys = jax.vmap(lambda k: jax.random.split(k, parallel_repetitions))(seq_keys)
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
-                #experiment_pCN(config, keys)
+                experiment_pCN(config, keys)
                 experiment_arw(config, keys)
                 experiment_adaptive_rw(config, keys)
