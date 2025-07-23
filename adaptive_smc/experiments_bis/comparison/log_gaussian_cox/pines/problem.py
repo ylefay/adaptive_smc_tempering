@@ -36,7 +36,7 @@ def construct_invariant_measure_and_target(config):
     else:
         base_measure_mean = my_prior_mean
         base_measure_cov = my_prior_covariance
-        _log_likelihood_fn = loglikelihood_fn
+        _loglikelihood_fn = loglikelihood_fn
 
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, mean=base_measure_mean,
