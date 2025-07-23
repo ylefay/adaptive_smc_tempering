@@ -64,8 +64,9 @@ def experiment_pCN(config, keys):
     if config.get('low_memory', False):
         @jax.vmap
         def wrapper_smc(key):
-            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                              save_disk_mem=True)
+            return smc.low_memory_sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence,
+                                         target_ess,
+                                         b16=config.get('b16', False))
     else:
         @jax.vmap
         def wrapper_smc(key):
@@ -116,8 +117,9 @@ def experiment_adaptive_rw(config, keys):
     if config.get('low_memory', False):
         @jax.vmap
         def wrapper_smc(key):
-            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                              save_disk_mem=True)
+            return smc.low_memory_sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence,
+                                         target_ess,
+                                         b16=config.get('b16', False))
     else:
         @jax.vmap
         def wrapper_smc(key):
@@ -171,8 +173,9 @@ def experiment_arw(config, keys):
     if config.get('low_memory', False):
         @jax.vmap
         def wrapper_smc(key):
-            return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                              save_disk_mem=True)
+            return smc.low_memory_sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence,
+                                         target_ess,
+                                         b16=config.get('b16', False))
     else:
         @jax.vmap
         def wrapper_smc(key):
