@@ -1,10 +1,10 @@
 laplace_10:
   run: Yes
   num_parallel_chain: 8
-  num_mcmc_steps: 1000
+  num_mcmc_steps: 2000
   sequential_repetitions: 1
   parallel_repetitions: 1
-  target_ess: No
+  target_ess: 0.1
   tempering_length: 4
   OUTPUT_PATH: "./output/"
   prefix: "main"
