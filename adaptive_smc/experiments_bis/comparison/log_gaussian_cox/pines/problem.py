@@ -21,7 +21,7 @@ def construct_invariant_measure_and_target(config):
                                                                                                     cov=my_prior_covariance)
     jac_log_likelihood_fn = get_jac_log_likelihood_fn(y=Y, m=1 / grid_size ** 2)
     my_tgt_log_density_jac = lambda x: jac_log_likelihood_fn(x) - jnp.linalg.inv(my_prior_covariance) @ (
-                x - my_prior_mean)
+            x - my_prior_mean)
 
     if base_measure_type == "laplace":  # i.e., Laplace
 
@@ -36,7 +36,7 @@ def construct_invariant_measure_and_target(config):
     else:
         base_measure_mean = my_prior_mean
         base_measure_cov = my_prior_covariance
-        _log_likelihood_fn = loglikelihood_fn
+        _loglikelihood_fn = loglikelihood_fn
 
     def base_measure_sampler(key):
         return jax.random.multivariate_normal(key, mean=base_measure_mean,
