@@ -74,7 +74,7 @@ def experiment_pCN(config, keys):
         @jax.vmap
         def wrapper_smc(key):
             return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                              save_disk_mem=True)
+                              save_disk_mem=False)
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')),
@@ -127,7 +127,7 @@ def experiment_adaptive_rw(config, keys):
         @jax.vmap
         def wrapper_smc(key):
             return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                              save_disk_mem=True)
+                              save_disk_mem=False)
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config.get('prefix')),
@@ -135,8 +135,8 @@ def experiment_adaptive_rw(config, keys):
 
 
 def experiment_arw(config, keys):
-    tau_grid = jnp.linspace(0.05, 4, 100)
-    rho_grid = jnp.linspace(0, 0.99, 100)
+    tau_grid = jnp.linspace(0.05, 4, 20)
+    rho_grid = jnp.linspace(0, 0.95, 10)
 
     tempering_length = config.get('tempering_length')
     my_tempering_sequence = jnp.linspace(0, 1, tempering_length)
@@ -183,7 +183,7 @@ def experiment_arw(config, keys):
         @jax.vmap
         def wrapper_smc(key):
             return smc.sample(key, num_parallel_chain, num_mcmc_steps, init_param, my_tempering_sequence, target_ess,
-                              save_disk_mem=True)
+                              save_disk_mem=False)
 
     res = wrapper_smc(keys)
     save(res, config, config.get('OUTPUT_PATH') + default_title(config['prefix']), config.get('compress_output', False))
@@ -204,4 +204,4 @@ if __name__ == "__main__":
             for keys in all_keys:
                 experiment_pCN(config, keys)
                 experiment_arw(config, keys)
-                experiment_adaptive_rw(config, keys)
+                #experiment_adaptive_rw(config, keys)

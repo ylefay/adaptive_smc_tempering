@@ -816,7 +816,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
             return couple_particles, log_weights_couple, log_weights, mh_proposal_parameters, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others
 
-        _, _, _, mh_proposal_parameters, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others = \
+        couple_particles, log_weights_couple, log_weights, mh_proposal_parameters, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others = \
             jax.lax.fori_loop(1, iteration + 1,
                               body_fn,
                               (
@@ -830,4 +830,4 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                                   log_normalizations,
                                   others
                               ))
-        return None, None, None, mh_proposal_parameters, None, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others
+        return couple_particles, log_weights_couple, log_weights, mh_proposal_parameters, None, criteria, tempering_sequence, diff_tempering_sequence, log_normalizations, others

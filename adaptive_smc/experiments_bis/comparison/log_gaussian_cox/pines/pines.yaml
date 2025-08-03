@@ -60,4 +60,4 @@ laplace_40:
   compress_output: Yes
   problem:
     grid_size: 40 # the particle dimension is grid_size**2.
-    base_measure_type: "prior"
+    base_measure_type: "laplace"
