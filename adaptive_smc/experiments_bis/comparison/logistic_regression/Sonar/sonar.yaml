@@ -14,11 +14,11 @@ prior:
     base_measure: "prior"
 
 laplace:
-  run: no
+  run: Yes
   num_parallel_chain: 10
   num_mcmc_steps: 10000 #25000
-  sequential_repetitions: 20
-  parallel_repetitions: 5
+  sequential_repetitions: 50
+  parallel_repetitions: 2
   target_ess: 0.5
   tempering_length: 9
   OUTPUT_PATH: "./output/"
@@ -30,7 +30,7 @@ laplace:
 
 
 debug:
-  run: Yes
+  run: False
   num_parallel_chain: 10
   num_mcmc_steps: 1000 #25000
   sequential_repetitions: 1
