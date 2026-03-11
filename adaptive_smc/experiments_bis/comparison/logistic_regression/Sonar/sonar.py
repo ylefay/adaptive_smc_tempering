@@ -11,7 +11,7 @@ from adaptive_smc.SMC import GenericAdaptiveWasteFreeTemperingSMC
 from adaptive_smc.experiments_bis.comparison.logistic_regression.Sonar.problem import construct_my_prior_and_target
 from adaptive_smc.save_and_read_and_postprocess import save
 
-OP_key = jax.random.PRNGKey(1)
+OP_key = jax.random.PRNGKey(0)
 _, key = jax.random.split(OP_key)
 
 jax.config.update("jax_enable_x64", True)
@@ -269,7 +269,7 @@ if __name__ == "__main__":
             _, key = jax.random.split(seq_keys.at[-1].get())
             for keys in all_keys:
                 experiment_MALA(config, keys)
-                experiment_pCNL(config, keys)
+                #experiment_pCNL(config, keys)
                 #experiment_pCN(config, keys)
                 #experiment_adaptive_rw(config, keys)
                 #experiment_arw(config, keys)

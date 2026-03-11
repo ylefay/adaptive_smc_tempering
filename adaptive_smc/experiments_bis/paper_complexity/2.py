@@ -103,7 +103,6 @@ def xp(config, eps, keys):
 
     save(res, run_config, output_file)
 
-
 if __name__ == "__main__":
 
     yaml_file = "1.yaml"
@@ -115,7 +114,11 @@ if __name__ == "__main__":
 
         if config.get("run", True):
 
-            eps_list = config.get("eps_list", [0.1])
+            # Fix epsilon for this scaling experiment
+            eps = config.get("eps", 0.1)
+
+            # Set a list of dimensions to vary
+            dim_list = config.get("dim_list", [4, 16, 36, 64, 100])
 
             sequential_repetitions = config.pop("sequential_repetitions", 1)
             parallel_repetitions = config["parallel_repetitions"]
@@ -128,6 +131,10 @@ if __name__ == "__main__":
 
             _, key = jax.random.split(seq_keys[-1])
 
-            for eps in eps_list:
+            # Loop over dimensions
+            for dim in dim_list:
+                # update config with current dim
+                config["dim"] = dim
+
                 for keys in all_keys:
                     xp(config, eps, keys)
