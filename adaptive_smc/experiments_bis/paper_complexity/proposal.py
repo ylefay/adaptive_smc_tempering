@@ -1,7 +1,7 @@
-from adaptive_smc_tempering.adaptive_smc.smc_types import SMCStatebis, LogDensity
+from adaptive_smc.smc_types import SMCStatebis, LogDensity
 from typing import Optional
 import jax.numpy as jnp
-from adaptive_smc_tempering.adaptive_smc.proposals.rw import build_gaussian_rw_proposal
+from adaptive_smc.proposals.rw import build_gaussian_rw_proposal
 
 
 def build_gaussian_rw_proposal_fixed_scaling(state: SMCStatebis, _: LogDensity, __: LogDensity, i: int,

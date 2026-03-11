@@ -21,11 +21,11 @@ The number of particles is either set to
 The saved output is the weights.
 """
 
-from adaptive_smc_tempering.adaptive_smc.SMC import GenericWasteFreeTemperingSMC
-from adaptive_smc_tempering.adaptive_smc.experiments_bis.paper_complexity.well_conditioned_gaussians import make_model
-from adaptive_smc_tempering.adaptive_smc.experiments_bis.paper_complexity.proposal import \
+from adaptive_smc.SMC import GenericWasteFreeTemperingSMC
+from adaptive_smc.experiments_bis.paper_complexity.well_conditioned_gaussians import make_model
+from adaptive_smc.experiments_bis.paper_complexity.proposal import \
     build_gaussian_rw_proposal_fixed_scaling
-from adaptive_smc_tempering.adaptive_smc.experiments_bis.paper_complexity.save import save
+from adaptive_smc.experiments_bis.paper_complexity.save import save
 
 import os
 from datetime import datetime
