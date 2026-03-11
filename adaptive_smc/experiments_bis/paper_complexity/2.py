@@ -86,7 +86,7 @@ def xp(config, eps, keys):
 
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(
+        return smc.low_memory_sample(
             key,
             num_parallel_chain,
             num_mcmc_steps,
