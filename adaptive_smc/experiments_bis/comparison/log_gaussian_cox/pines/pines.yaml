@@ -1,0 +1,63 @@
+laplace_5:
+  run: No
+  num_parallel_chain: 8
+  num_mcmc_steps: 2000
+  sequential_repetitions: 1
+  parallel_repetitions: 1
+  target_ess: 0.5
+  tempering_length: 10
+  OUTPUT_PATH: "./output_5/"
+  prefix: "main"
+  low_memory: No
+  compress_output: Yes
+  problem:
+    grid_size: 5 # the particle dimension is grid_size**2.
+    base_measure_type: "laplace"
+
+laplace_10:
+  run: No
+  num_parallel_chain: 16
+  num_mcmc_steps: 4000
+  sequential_repetitions: 1
+  parallel_repetitions: 1
+  target_ess: 0.5
+  tempering_length: 10
+  OUTPUT_PATH: "./output_10/"
+  prefix: "main"
+  low_memory: No
+  compress_output: Yes
+  problem:
+    grid_size: 10 # the particle dimension is grid_size**2.
+    base_measure_type: "laplace"
+
+laplace_20:
+  run: No
+  num_parallel_chain: 16
+  num_mcmc_steps: 8000
+  sequential_repetitions: 1
+  parallel_repetitions: 1
+  target_ess: 0.5
+  tempering_length: 10
+  OUTPUT_PATH: "./output_20/"
+  prefix: "main"
+  low_memory: Yes
+  compress_output: Yes
+  problem:
+    grid_size: 20 # the particle dimension is grid_size**2.
+    base_measure_type: "laplace"
+
+laplace_40:
+  run: Yes
+  num_parallel_chain: 16
+  num_mcmc_steps: 8000
+  sequential_repetitions: 1
+  parallel_repetitions: 1
+  target_ess: 0.5
+  tempering_length: 20
+  OUTPUT_PATH: "./output_40/"
+  prefix: "main"
+  low_memory: Yes
+  compress_output: Yes
+  problem:
+    grid_size: 40 # the particle dimension is grid_size**2.
+    base_measure_type: "laplace"
