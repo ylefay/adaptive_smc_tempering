@@ -4,7 +4,7 @@ from datetime import datetime
 import jax.numpy as jnp
 import jax.random
 import yaml
-from adaptive_smc.experiments_bis.comparison.problem import construct_my_prior_and_target
+from adaptive_smc.experiments_bis.comparison.anisotropic_gaussian.problem import construct_my_prior_and_target
 
 from adaptive_smc import optimise
 from adaptive_smc import proposals

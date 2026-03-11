@@ -38,7 +38,7 @@ def build_gaussian_rw_proposal(C: ArrayLike):
 def build_gaussian_rwmh_cov_proposal(state: SMCStatebis, log_tgt_density_fn: LogDensity, log_likelihood_fn: LogDensity,
                                      i: int, j: Optional[int] = None):
     """
-    Adaptative RWMH kernels with scaling set to the optimal asymptotic scaling, i.e. 2.38^2/dim.
+    Adaptative RWMH kernel with scaling set to the optimal asymptotic scaling, i.e. 2.38^2/dim.
     See Optimal scaling for various Metropolis-Hastings algorithms, Gareth O. Roberts and Jeffrey S. Rosenthal
     """
     state.mh_proposal_parameters = state.mh_proposal_parameters.at[i - 1].set(2.38)

@@ -7,7 +7,9 @@ import jax.numpy as jnp
 
 def save(res, config, output_path="", compress=False, rapid_pkl=False):
     r"""
-    Saving in a PKL file the config dictionnary and the output of the SMC sampler.
+    Saving in a PKL file the config dictionnary and the output of the SMC sampler
+    as given by GenericAdaptiveWasteFreeTemperingSMC.
+    .
 
     if `compress` is True, the samples, weights and criterion are converted to float16
     to save disk space (about a 75\% storage saving).

@@ -1,0 +1,8 @@
+config_dim10:
+  run: Yes
+  sequential_repetitions: 4
+  parallel_repetitions: 10
+  eps_list: [0.025, 0.05, 0.1, 0.25]
+  dim: 10
+  OUTPUT_PATH: "./"
+  prefix: "1_"

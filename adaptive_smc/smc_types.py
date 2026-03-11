@@ -12,7 +12,8 @@ type LogDensity = Callable[[ArrayLike], ArrayLike]
 type LogProposal = Callable[[ArrayLike, ArrayLike], ArrayLike]
 type Sampler = Callable[[PRNGKey], ArrayLike]
 type ProposalSampler = Callable[[PRNGKey, ArrayLike], ArrayLike]
-
+type KernelSampler = Callable[[PRNGKey, ArrayLike], ArrayLike] # Unused
+type Density = Callable[[ArrayLike], ArrayLike] # Unused
 
 class SMCStatebis(NamedTuple):
     particles: ArrayLike  # of shape (iteration + 1, num_parallel_chain, P, dim)
@@ -32,3 +33,4 @@ type OptimisingProcedure = Callable[
 
 # The second integer is exactly there for the same reason as the second one in ProposalBuilder
 type CriteriaFunction = Callable[[ArrayLike, ArrayLike, SMCStatebis, int, int], ArrayLike]
+
