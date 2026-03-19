@@ -1206,3 +1206,357 @@ class GenericWasteFreeTemperingSMC:
                                   log_normalizations,
                               ))
         return None, None, tempering_sequence, None, log_normalizations
+
+
+class GenericTemperingSMC:
+    """
+        Same as previously, but the kernels are fixed. This is a plain SMC implementation.
+    """
+
+    def __init__(self, logbase_density_fn: LogDensity,
+                 base_measure_sampler: Sampler,
+                 log_likelihood_fn: LogDensity,
+                 build_mh_proposal: ProposalBuilder,
+                 ) -> None:
+        self.logbase_density_fn = logbase_density_fn
+        self.vmapped_logbase_density_fn = jnp.vectorize(logbase_density_fn, signature='(d)->()')
+        self.base_measure_sampler = base_measure_sampler
+        self.vmapped_base_measure_sampler = jnp.vectorize(base_measure_sampler,
+                                                          signature='(2)->(d)')  # Assuming a vmappable function
+        self.log_likelihood_fn = log_likelihood_fn
+        self.vmapped_log_likelihood_fn = jnp.vectorize(log_likelihood_fn,
+                                                       signature='(d)->()')  # Assuming a vmappable function
+        self.build_mh_proposal = build_mh_proposal
+
+    def log_tgt_fn(self, lmbda):
+        def _log_tgt_fn(x):
+            return lmbda * self.log_likelihood_fn(x) + self.logbase_density_fn(x)
+
+        return _log_tgt_fn
+
+    def log_weights_fn(self, dlmbda):
+        def _log_weights_fn(x):
+            return dlmbda * self.log_likelihood_fn(x)
+
+        return _log_weights_fn
+
+    def vmapped_log_tgt_fn(self, lmbda):
+        return jnp.vectorize(self.log_tgt_fn(lmbda), signature='(d)->()')
+
+    def vmapped_log_weights_fn(self, dlmbda):
+        return jnp.vectorize(self.log_weights_fn(dlmbda), signature='(d)->()')
+
+    def sample(self, key: PRNGKey, num_parallel_chain: int, num_mcmc_steps: int,
+               tempering_sequence: ArrayLike,
+               target_ess: Optional[float] = None) -> Tuple[
+        ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
+        r"""
+
+        Parameters
+        ----------
+        self
+        key
+        num_parallel_chain
+        num_mcmc_steps
+        tempering_sequence
+        target_ess
+        init_other
+
+        Returns
+        -------
+
+        """
+        iteration = len(tempering_sequence) - 1
+        diff_tempering_sequence = jnp.diff(tempering_sequence)
+        diff_tempering_sequence = jnp.insert(diff_tempering_sequence, 0, tempering_sequence.at[0].get())
+
+        P = num_mcmc_steps + 1
+        num_particles = num_parallel_chain * 1
+
+        subkey = jax.random.fold_in(key, 0)
+        subkeys = jax.random.split(subkey, (num_parallel_chain, 1))
+
+        init_particles = self.vmapped_base_measure_sampler(subkeys)
+        dim = init_particles.shape[-1]
+
+        particles = jnp.zeros((iteration + 1, num_parallel_chain, 1, dim))
+        particles = particles.at[0].set(init_particles)
+
+        log_normalizations = jnp.zeros((iteration + 1,))
+        log_weights = jnp.zeros((iteration + 1, num_parallel_chain, 1))
+
+        if target_ess:
+            _log_weights = self.vmapped_log_likelihood_fn(init_particles)
+            eps = 1e-2
+            dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0. + eps, 1.0, eps,
+                               10)
+            dlmbda = jnp.clip(dlmbda, 0., 1.0)
+            tempering_sequence = tempering_sequence.at[0].set(dlmbda)
+            diff_tempering_sequence = diff_tempering_sequence.at[0].set(dlmbda)
+
+        log_G0_fn = self.vmapped_log_weights_fn(diff_tempering_sequence.at[0].get())
+        init_log_weights = log_G0_fn(init_particles)
+        init_log_weights, log_normalization = normalize_log_weights(init_log_weights)
+
+        log_normalizations = log_normalizations.at[0].set(log_normalization)
+        log_weights = log_weights.at[0].set(init_log_weights)
+
+        def make_inner_loop(i: int, particles: ArrayLike,
+                            log_weights: ArrayLike,
+                            tempering_sequence: ArrayLike,
+                            ):
+            log_target_density_at_t_minus_one_fn = self.log_tgt_fn(tempering_sequence.at[i - 1].get())
+            state = SMCStatebis(particles, None,
+                                log_weights, None,
+                                tempering_sequence, None)
+            log_proposal, proposal_sampler, _ = (
+                self.build_mh_proposal(state,
+                                       self.log_tgt_fn(tempering_sequence.at[i - 1].get()),
+                                       self.log_likelihood_fn,
+                                       i))
+
+            @jax.vmap
+            def inside_body_fn(key, particle):
+                _particles = jnp.zeros((1, dim))
+                _particles = _particles.at[0].set(particle)
+
+                def insinde_inside_body_fn(p, carry):
+                    key, particles_across_p = carry
+                    particle = particles_across_p.at[0].get()
+
+                    subkey_p = jax.random.fold_in(key, p)
+
+                    proposed_particle = proposal_sampler(subkey_p, particle)
+                    _, key = jax.random.split(key)
+
+                    log_target_density_at_t_minus_one_fn_particle = log_target_density_at_t_minus_one_fn(particle)
+                    log_current_tgt_density_new_proposed_particle = log_target_density_at_t_minus_one_fn(
+                        proposed_particle)
+
+                    accept_MH_boolean, _ = accept_reject_mh_step(
+                        key,
+                        log_current_tgt_density_new_proposed_particle,
+                        log_target_density_at_t_minus_one_fn_particle,
+                        log_proposal(proposed_particle, particle),
+                        log_proposal(particle, proposed_particle)
+                    )
+                    new_particle = jax.lax.select(accept_MH_boolean, proposed_particle, particle)
+                    particles_across_p = particles_across_p.at[0].set(new_particle)
+                    return key, particles_across_p
+
+                _, _particles = jax.lax.fori_loop(
+                    1,
+                    P,
+                    insinde_inside_body_fn,
+                    (
+                        key,
+                        _particles,
+                    )
+                )
+                return _particles
+
+            return inside_body_fn
+
+        def body_fn(i, carry):
+            particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations = carry
+            subkey = jax.random.fold_in(key, i)
+            ancestors = multinomial(subkey, jnp.exp(log_weights.at[i - 1].get().reshape(-1)), num_parallel_chain)
+            resampled_particles = particles.at[i - 1].get().reshape((num_particles, dim)).at[
+                ancestors].get()
+            if target_ess:
+                _log_weights = self.vmapped_log_likelihood_fn(
+                    particles.at[i - 1].get())  # do not use new_particles, this is wrong
+                eps = 1e-2
+                dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0. + eps,
+                                   1.0 - tempering_sequence.at[i - 1].get(), eps, 10)
+                dlmbda = jnp.clip(dlmbda, 0., 1.0 - tempering_sequence.at[i - 1].get())
+                tempering_sequence = tempering_sequence.at[i].set(tempering_sequence.at[i - 1].get() + dlmbda)
+                diff_tempering_sequence = diff_tempering_sequence.at[i].set(dlmbda)
+
+            inside_body_fn = make_inner_loop(i,
+                                             particles,
+                                             log_weights,
+                                             tempering_sequence,
+                                             )
+
+            keys = jax.random.split(subkey, num_parallel_chain)
+            # Running the inner loop for iteration t
+            new_particles = inside_body_fn(keys, resampled_particles)
+            particles = particles.at[i].set(new_particles)
+            log_Gi_fn = self.vmapped_log_weights_fn(diff_tempering_sequence.at[i].get())
+            new_log_weights = log_Gi_fn(new_particles)
+            new_log_weights, log_normalization = normalize_log_weights(new_log_weights)
+            log_normalizations = log_normalizations.at[i].set(log_normalization)
+            log_weights = log_weights.at[i].set(new_log_weights)
+
+            return particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations
+
+        particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations = \
+            jax.lax.fori_loop(1, iteration + 1,
+                              body_fn,
+                              (
+                                  particles,
+                                  log_weights,
+                                  tempering_sequence,
+                                  diff_tempering_sequence,
+                                  log_normalizations,
+                              ))
+        return particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations
+
+
+    def low_memory_sample(self, key: PRNGKey, num_parallel_chain: int, num_mcmc_steps: int,
+               tempering_sequence: ArrayLike,
+               target_ess: Optional[float] = None) -> Tuple[
+        ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
+        r"""
+
+        Parameters
+        ----------
+        self
+        key
+        num_parallel_chain
+        num_mcmc_steps
+        tempering_sequence
+        target_ess
+        init_other
+
+        Returns
+        -------
+
+        """
+        iteration = len(tempering_sequence) - 1
+        diff_tempering_sequence = jnp.diff(tempering_sequence)
+        diff_tempering_sequence = jnp.insert(diff_tempering_sequence, 0, tempering_sequence.at[0].get())
+
+        P = num_mcmc_steps + 1
+        num_particles = num_parallel_chain * 1
+
+        subkey = jax.random.fold_in(key, 0)
+        subkeys = jax.random.split(subkey, (num_parallel_chain, 1))
+
+        init_particles = self.vmapped_base_measure_sampler(subkeys)
+        dim = init_particles.shape[-1]
+
+        particles = jnp.zeros((1, num_parallel_chain, 1, dim))
+        particles = particles.at[0].set(init_particles)
+
+        log_normalizations = jnp.zeros((iteration + 1,))
+        log_weights = jnp.zeros((1, num_parallel_chain, 1))
+
+        if target_ess:
+            _log_weights = self.vmapped_log_likelihood_fn(init_particles)
+            eps = 1e-2
+            dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0. + eps, 1.0, eps,
+                               10)
+            dlmbda = jnp.clip(dlmbda, 0., 1.0)
+            tempering_sequence = tempering_sequence.at[0].set(dlmbda)
+            diff_tempering_sequence = diff_tempering_sequence.at[0].set(dlmbda)
+
+        log_G0_fn = self.vmapped_log_weights_fn(diff_tempering_sequence.at[0].get())
+        init_log_weights = log_G0_fn(init_particles)
+        init_log_weights, log_normalization = normalize_log_weights(init_log_weights)
+
+        log_normalizations = log_normalizations.at[0].set(log_normalization)
+        log_weights = log_weights.at[0].set(init_log_weights)
+
+        def make_inner_loop(i: int, particles: ArrayLike,
+                            log_weights: ArrayLike,
+                            tempering_sequence: ArrayLike,
+                            ):
+            log_target_density_at_t_minus_one_fn = self.log_tgt_fn(tempering_sequence.at[i - 1].get())
+            state = SMCStatebis(particles, None,
+                                log_weights, None,
+                                tempering_sequence, None)
+            log_proposal, proposal_sampler, _ = (
+                self.build_mh_proposal(state,
+                                       self.log_tgt_fn(tempering_sequence.at[i - 1].get()),
+                                       self.log_likelihood_fn,
+                                       i))
+
+            @jax.vmap
+            def inside_body_fn(key, particle):
+                _particles = jnp.zeros((1, dim))
+                _particles = _particles.at[0].set(particle)
+
+                def insinde_inside_body_fn(p, carry):
+                    key, particles_across_p = carry
+                    particle = particles_across_p.at[0].get()
+
+                    subkey_p = jax.random.fold_in(key, p)
+
+                    proposed_particle = proposal_sampler(subkey_p, particle)
+                    _, key = jax.random.split(key)
+
+                    log_target_density_at_t_minus_one_fn_particle = log_target_density_at_t_minus_one_fn(particle)
+                    log_current_tgt_density_new_proposed_particle = log_target_density_at_t_minus_one_fn(
+                        proposed_particle)
+
+                    accept_MH_boolean, _ = accept_reject_mh_step(
+                        key,
+                        log_current_tgt_density_new_proposed_particle,
+                        log_target_density_at_t_minus_one_fn_particle,
+                        log_proposal(proposed_particle, particle),
+                        log_proposal(particle, proposed_particle)
+                    )
+                    new_particle = jax.lax.select(accept_MH_boolean, proposed_particle, particle)
+                    particles_across_p = particles_across_p.at[0].set(new_particle)
+                    return key, particles_across_p
+
+                _, _particles = jax.lax.fori_loop(
+                    1,
+                    P,
+                    insinde_inside_body_fn,
+                    (
+                        key,
+                        _particles,
+                    )
+                )
+                return _particles
+
+            return inside_body_fn
+
+        def body_fn(i, carry):
+            particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations = carry
+            subkey = jax.random.fold_in(key, i)
+            ancestors = multinomial(subkey, jnp.exp(log_weights.at[0].get().reshape(-1)), num_parallel_chain)
+            resampled_particles = particles.at[0].get().reshape((num_particles, dim)).at[
+                ancestors].get()
+            if target_ess:
+                _log_weights = self.vmapped_log_likelihood_fn(
+                    particles.at[0].get())  # do not use new_particles, this is wrong
+                eps = 1e-2
+                dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0. + eps,
+                                   1.0 - tempering_sequence.at[i - 1].get(), eps, 10)
+                dlmbda = jnp.clip(dlmbda, 0., 1.0 - tempering_sequence.at[i - 1].get())
+                tempering_sequence = tempering_sequence.at[i].set(tempering_sequence.at[i - 1].get() + dlmbda)
+                diff_tempering_sequence = diff_tempering_sequence.at[i].set(dlmbda)
+
+            inside_body_fn = make_inner_loop(i,
+                                             particles,
+                                             log_weights,
+                                             tempering_sequence,
+                                             )
+
+            keys = jax.random.split(subkey, num_parallel_chain)
+            # Running the inner loop for iteration t
+            new_particles = inside_body_fn(keys, resampled_particles)
+            particles = particles.at[0].set(new_particles)
+            log_Gi_fn = self.vmapped_log_weights_fn(diff_tempering_sequence.at[i].get())
+            new_log_weights = log_Gi_fn(new_particles)
+            new_log_weights, log_normalization = normalize_log_weights(new_log_weights)
+            log_normalizations = log_normalizations.at[i].set(log_normalization)
+            log_weights = log_weights.at[0].set(new_log_weights)
+
+            return particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations
+
+        particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations = \
+            jax.lax.fori_loop(1, iteration + 1,
+                              body_fn,
+                              (
+                                  particles,
+                                  log_weights,
+                                  tempering_sequence,
+                                  diff_tempering_sequence,
+                                  log_normalizations,
+                              ))
+        return None, None, tempering_sequence, None, log_normalizations
