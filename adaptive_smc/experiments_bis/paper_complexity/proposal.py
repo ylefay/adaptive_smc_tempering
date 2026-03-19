@@ -10,8 +10,13 @@ def build_gaussian_rw_proposal_fixed_scaling(state: SMCStatebis, _: LogDensity, 
     dim = particles.shape[-1]
     optimal_scale = 2.38 / jnp.sqrt(dim)
 
+<<<<<<< HEAD
     def gaussian_rwmh_cov_log_proposal(x, y): # No need to implement it, it is symmetric.
         return 0.
+=======
+    def gaussian_rwmh_cov_log_proposal(x, y):
+        return jax.scipy.stats.multivariate_normal.logpdf(y, x, optimal_scale ** 2)
+>>>>>>> 15bf9ac4f4bf13ea6ba75807a68e6ecb396d7f96
 
     def gaussian_rwmh_sampler(key, x):
         return x + jax.random.normal(key, shape=(dim,)) * optimal_scale

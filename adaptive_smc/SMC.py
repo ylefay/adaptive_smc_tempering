@@ -29,6 +29,28 @@ class GenericAdaptiveWasteFreeTemperingSMC:
                  grid_criteria=jnp.linspace(0.01, 8, 100),
                  batch_size_criteria=jnp.inf
                  ) -> None:
+<<<<<<< HEAD
+=======
+        """
+        logbase_density_fn: (normalised) log density of a base measure \nu
+        base_measure_sampler: sampler for the base measure \nu
+        log_likelihood_fn: log likelihood function, the target at temperature \lmbda has log-density
+            logbase_density_fn + \lambda * log_likelihood_fn, up to an additive constant
+        build_mh_proposal: function that takes as input the current SMC state, the log target density at time t,
+            the log likelihood, and the iteration index t, and returns a MH proposal kernel (log proposal and sampler)
+            for iteration t + 1. The proposal can be adaptive and depend on the current SMC state.
+        optimisation: procedure to optimize the criteria at each iteration over the MH proposal parameters.
+            make_constant() can be used to not optimize and keep the initial MH proposal parameters fixed.
+        criteria_function: function g(z, z') to be used in (Rao-Blackwellised) criteria
+                h(E_{i + 1}[g(z, z')  f(a(z, z'))]), where a is the acceptance-ratio.
+                The ESJD (expected square jumping distance) is obtained by g(z,z') = ||z-z'||^2.
+        fun_to_be_applied_to_the_mh_ratio_in_the_criteria: the function f applied to the acceptance ratio in the criteria.
+        fun_to_be_applied_to_the_criteria: the function h applied to the criteria. For example, setting g = 1, f = 1 and
+            h = -(\cdot - 0.234)^2, yields a criteria that is maximised for an acceptance ratio of 0.234.
+        grid_criteria: a fixed grid for the tuning-parameter space on which the criteria is computed.
+        batch_size_criteria: the batch size to use when applying the function to compute the criteria on the grid.
+        """
+>>>>>>> 15bf9ac4f4bf13ea6ba75807a68e6ecb396d7f96
         self.logbase_density_fn = logbase_density_fn
         self.vmapped_logbase_density_fn = jnp.vectorize(logbase_density_fn, signature='(d)->()')
         self.base_measure_sampler = base_measure_sampler
@@ -154,6 +176,7 @@ class GenericAdaptiveWasteFreeTemperingSMC:
 
         Parameters
         ----------
+<<<<<<< HEAD
         self
         key
         num_parallel_chain
@@ -161,6 +184,14 @@ class GenericAdaptiveWasteFreeTemperingSMC:
         initial_mh_proposal_parameter
         tempering_sequence
         target_ess
+=======
+        num_parallel_chain: M
+        num_mcmc_steps: P
+        initial_mh_proposal_parameter
+        target_ess: If set, the temperature at iteration t is adapted to target an ESS of target_ess at iteration t, that is, ESS(\{w_t^i\}_i) >= target_ess.
+                See Alg. 17.3 in "An introduction to Sequential Monte Carlo" by Nicolas Chopin and Omiros Papaspiliopoulos.
+                Otherwise, the temperatures are set to tempering_sequence
+>>>>>>> 15bf9ac4f4bf13ea6ba75807a68e6ecb396d7f96
         init_other
 
         Returns
@@ -1029,10 +1060,16 @@ class GenericWasteFreeTemperingSMC:
                               ))
         return particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations
 
+<<<<<<< HEAD
 
     def low_memory_sample(self, key: PRNGKey, num_parallel_chain: int, num_mcmc_steps: int,
                tempering_sequence: ArrayLike,
                target_ess: Optional[float] = None) -> Tuple[
+=======
+    def low_memory_sample(self, key: PRNGKey, num_parallel_chain: int, num_mcmc_steps: int,
+                          tempering_sequence: ArrayLike,
+                          target_ess: Optional[float] = None) -> Tuple[
+>>>>>>> 15bf9ac4f4bf13ea6ba75807a68e6ecb396d7f96
         ArrayLike, ArrayLike, ArrayLike, ArrayLike, ArrayLike]:
         r"""
 
@@ -1067,7 +1104,11 @@ class GenericWasteFreeTemperingSMC:
         particles = particles.at[0].set(init_particles)
 
         log_normalizations = jnp.zeros((iteration + 1,))
+<<<<<<< HEAD
         log_weights = jnp.zeros((1, num_parallel_chain, P))
+=======
+        log_weights = jnp.zeros((iteration + 1, num_parallel_chain, P))
+>>>>>>> 15bf9ac4f4bf13ea6ba75807a68e6ecb396d7f96
 
         if target_ess:
             _log_weights = self.vmapped_log_likelihood_fn(init_particles)
@@ -1144,7 +1185,11 @@ class GenericWasteFreeTemperingSMC:
         def body_fn(i, carry):
             particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations = carry
             subkey = jax.random.fold_in(key, i)
+<<<<<<< HEAD
             ancestors = multinomial(subkey, jnp.exp(log_weights.at[0].get().reshape(-1)), num_parallel_chain)
+=======
+            ancestors = multinomial(subkey, jnp.exp(log_weights.at[i - 1].get().reshape(-1)), num_parallel_chain)
+>>>>>>> 15bf9ac4f4bf13ea6ba75807a68e6ecb396d7f96
             resampled_particles = particles.at[0].get().reshape((num_particles, dim)).at[
                 ancestors].get()
             if target_ess:
@@ -1171,7 +1216,11 @@ class GenericWasteFreeTemperingSMC:
             new_log_weights = log_Gi_fn(new_particles)
             new_log_weights, log_normalization = normalize_log_weights(new_log_weights)
             log_normalizations = log_normalizations.at[i].set(log_normalization)
+<<<<<<< HEAD
             log_weights = log_weights.at[0].set(new_log_weights)
+=======
+            log_weights = log_weights.at[i].set(new_log_weights)
+>>>>>>> 15bf9ac4f4bf13ea6ba75807a68e6ecb396d7f96
 
             return particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations
 
@@ -1185,4 +1234,8 @@ class GenericWasteFreeTemperingSMC:
                                   diff_tempering_sequence,
                                   log_normalizations,
                               ))
+<<<<<<< HEAD
         return None, None, tempering_sequence, None, log_normalizations
+=======
+        return None, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations
+>>>>>>> 15bf9ac4f4bf13ea6ba75807a68e6ecb396d7f96
