@@ -256,8 +256,4 @@ cython_debug/
 
 *.pkl
 *.png
-<<<<<<< HEAD
 *.pkl_small
-=======
-*.pkl_small
->>>>>>> 15bf9ac4f4bf13ea6ba75807a68e6ecb396d7f96
