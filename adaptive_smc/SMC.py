@@ -1067,7 +1067,7 @@ class GenericWasteFreeTemperingSMC:
         particles = particles.at[0].set(init_particles)
 
         log_normalizations = jnp.zeros((iteration + 1,))
-        log_weights = jnp.zeros((iteration + 1, num_parallel_chain, P))
+        log_weights = jnp.zeros((1, num_parallel_chain, P))
 
         if target_ess:
             _log_weights = self.vmapped_log_likelihood_fn(init_particles)
@@ -1144,7 +1144,7 @@ class GenericWasteFreeTemperingSMC:
         def body_fn(i, carry):
             particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations = carry
             subkey = jax.random.fold_in(key, i)
-            ancestors = multinomial(subkey, jnp.exp(log_weights.at[i - 1].get().reshape(-1)), num_parallel_chain)
+            ancestors = multinomial(subkey, jnp.exp(log_weights.at[0].get().reshape(-1)), num_parallel_chain)
             resampled_particles = particles.at[0].get().reshape((num_particles, dim)).at[
                 ancestors].get()
             if target_ess:
@@ -1171,7 +1171,7 @@ class GenericWasteFreeTemperingSMC:
             new_log_weights = log_Gi_fn(new_particles)
             new_log_weights, log_normalization = normalize_log_weights(new_log_weights)
             log_normalizations = log_normalizations.at[i].set(log_normalization)
-            log_weights = log_weights.at[i].set(new_log_weights)
+            log_weights = log_weights.at[0].set(new_log_weights)
 
             return particles, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations
 
@@ -1185,4 +1185,4 @@ class GenericWasteFreeTemperingSMC:
                                   diff_tempering_sequence,
                                   log_normalizations,
                               ))
-        return None, log_weights, tempering_sequence, diff_tempering_sequence, log_normalizations
+        return None, None, tempering_sequence, None, log_normalizations

@@ -1,0 +1,121 @@
+config_median:
+  run: No
+  sequential_repetitions: 50
+  parallel_repetitions: 40
+  dim_list: [1, 5, 10, 20]
+  num_mcmc_steps: 20
+  OUTPUT_PATH: "./heavyfactor08/"
+  heavy_factor: 0.8
+  prefix: "_median"
+
+config:
+  run: No
+  sequential_repetitions: 50
+  parallel_repetitions: 4
+  dim_list: [1, 5, 10, 20]
+  num_mcmc_steps: 200
+  heavy_factor: 0.8
+  OUTPUT_PATH: "./heavyfactor08/"
+  prefix: "_"
+
+config_median2:
+  run: No
+  sequential_repetitions: 50
+  parallel_repetitions: 40
+  dim_list: [1, 5, 10, 20]
+  num_mcmc_steps: 20
+  OUTPUT_PATH: "./heavyfactor12/"
+  heavy_factor: 1.2
+  prefix: "_median"
+
+config2:
+  run: No
+  sequential_repetitions: 50
+  parallel_repetitions: 4
+  dim_list: [1, 5, 10, 20]
+  num_mcmc_steps: 200
+  heavy_factor: 1.2
+  OUTPUT_PATH: "./heavyfactor12/"
+  prefix: "_"
+
+
+config_median3:
+  run: No
+  sequential_repetitions: 50
+  parallel_repetitions: 40
+  dim_list: [20]
+  num_mcmc_steps: 20
+  OUTPUT_PATH: "./heavyfactor20/"
+  heavy_factor: 2.0
+  prefix: "_median"
+
+config3:
+  run: No
+  sequential_repetitions: 50
+  parallel_repetitions: 4
+  dim_list: [1, 20]
+  num_mcmc_steps: 200
+  heavy_factor: 2.0
+  OUTPUT_PATH: "./heavyfactor20/"
+  prefix: "_"
+
+config_median4:
+  run: Yes
+  sequential_repetitions: 400
+  parallel_repetitions: 5
+  dim_list: [100]
+  num_mcmc_steps: 20
+  OUTPUT_PATH: "./power2/heavyfactor05/"
+  heavy_factor: 0.5
+  prefix: "_median"
+
+config4: #to rerun maybe
+  run: Yes
+  sequential_repetitions: 100
+  parallel_repetitions: 2
+  dim_list: [100]
+  num_mcmc_steps: 200
+  heavy_factor: 0.5
+  OUTPUT_PATH: "./power2/heavyfactor05/"
+  prefix: "_"
+  
+config_median5:
+  run: Yes
+  sequential_repetitions: 400
+  parallel_repetitions: 5
+  dim_list: [100]
+  num_mcmc_steps: 20
+  OUTPUT_PATH: "./power2/heavyfactor4/"
+  heavy_factor: 4.0
+  prefix: "_median"
+
+config5:
+  run: Yes
+  sequential_repetitions: 100
+  parallel_repetitions: 2
+  dim_list: [100]
+  num_mcmc_steps: 200
+  heavy_factor: 4.0
+  OUTPUT_PATH: "./power2/heavyfactor4/"
+  prefix: "_"
+
+
+config_median6:
+  run: No
+  sequential_repetitions: 50
+  parallel_repetitions: 40
+  dim_list: [1, 5, 10, 20]
+  num_mcmc_steps: 20
+  OUTPUT_PATH: "./heavyfactor8/"
+  heavy_factor: 8.0
+  prefix: "_median"
+
+config6:
+  run: No
+  sequential_repetitions: 50
+  parallel_repetitions: 4
+  dim_list: [1, 5, 10, 20]
+  num_mcmc_steps: 200
+  heavy_factor: 8.0
+  OUTPUT_PATH: "./heavyfactor8/"
+  prefix: "_"

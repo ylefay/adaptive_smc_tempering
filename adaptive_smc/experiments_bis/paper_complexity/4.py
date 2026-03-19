@@ -22,7 +22,7 @@ The saved output is the weights.
 """
 
 from adaptive_smc.SMC import GenericWasteFreeTemperingSMC
-from adaptive_smc.experiments_bis.paper_complexity.well_conditioned_gaussians import make_model
+from adaptive_smc.experiments_bis.paper_complexity.heavy_tail_increment_weights_gaussians import make_model
 from adaptive_smc.experiments_bis.paper_complexity.proposal import \
     build_gaussian_rw_proposal_fixed_scaling
 from adaptive_smc.experiments_bis.paper_complexity.save import save
@@ -33,9 +33,9 @@ import jax
 import jax.numpy as jnp
 import yaml
 
-jax.config.update("jax_enable_x64", True)
+jax.config.update("jax_enable_x64", False)
 
-OP_key = jax.random.PRNGKey(0)
+OP_key = jax.random.PRNGKey(12)
 _, key = jax.random.split(OP_key)
 
 
@@ -52,22 +52,22 @@ def default_title(prefix='', eps=None):
 def xp(config, eps, keys):
     # Copy config so we never mutate the original
     run_config = dict(config)
-
+    
     dim = run_config["dim"]
     target_ess = 0.5
 
     T = int(jnp.sqrt(dim))
     gamma = 1 / dim
 
-    num_parallel_chain = 4
-    num_mcmc_steps = int(T ** 2 / (eps ** 2 * gamma) * jnp.log(T * 5)/500)
+    num_parallel_chain = 20
+    num_mcmc_steps = int(run_config["num_mcmc_steps"] * dim ** 2.0 // 2) #int(T ** 2 / (eps ** 2 * gamma) * jnp.log(T * 5)/500)
     tempering_length = T * 2
 
     tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
     # Generate model
     model_key = jax.random.PRNGKey(0)
-    loglikelihood_fn, base_measure_sampler, logbase_density_fn, true_log_Z = make_model(dim, model_key)
+    loglikelihood_fn, base_measure_sampler, logbase_density_fn, true_log_Z = make_model(dim, config.get('heavy_factor', 1.0), model_key)
 
     run_config.update({
         "eps": eps,
@@ -84,6 +84,7 @@ def xp(config, eps, keys):
         build_gaussian_rw_proposal_fixed_scaling
     )
 
+    @jax.jit
     @jax.vmap
     def wrapper_smc(key):
         return smc.low_memory_sample(
@@ -105,7 +106,7 @@ def xp(config, eps, keys):
 
 if __name__ == "__main__":
 
-    yaml_file = "1.yaml"
+    yaml_file = "4.yaml"
 
     with open(yaml_file, "r") as file:
         y_config = yaml.load(file, Loader=yaml.FullLoader)
@@ -118,7 +119,7 @@ if __name__ == "__main__":
             eps = config.get("eps", 0.1)
 
             # Set a list of dimensions to vary
-            dim_list = config.get("dim_list", [4, 16, 36, 64, 100])
+            dim_list = config.get("dim_list", [5])
 
             sequential_repetitions = config.pop("sequential_repetitions", 1)
             parallel_repetitions = config["parallel_repetitions"]
