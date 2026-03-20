@@ -35,7 +35,7 @@ import yaml
 
 jax.config.update("jax_enable_x64", False)
 
-OP_key = jax.random.PRNGKey(12)
+OP_key = jax.random.PRNGKey(2)
 _, key = jax.random.split(OP_key)
 
 

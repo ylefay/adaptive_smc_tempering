@@ -1,8 +1,8 @@
 config_median4:
   run: Yes
-  sequential_repetitions: 400
-  parallel_repetitions: 5
-  dim_list: [100]
+  sequential_repetitions: 50
+  parallel_repetitions: 40
+  dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 20
   OUTPUT_PATH: "./power2/heavyfactor05/"
   heavy_factor: 0.5
@@ -10,9 +10,9 @@ config_median4:
 
 config4: #to rerun maybe
   run: Yes
-  sequential_repetitions: 100
-  parallel_repetitions: 2
-  dim_list: [100]
+  sequential_repetitions: 50
+  parallel_repetitions: 4
+  dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 200
   heavy_factor: 0.5
   OUTPUT_PATH: "./power2/heavyfactor05/"
@@ -20,9 +20,9 @@ config4: #to rerun maybe
   
 config_median5:
   run: Yes
-  sequential_repetitions: 400
-  parallel_repetitions: 5
-  dim_list: [100]
+  sequential_repetitions: 50
+  parallel_repetitions: 40
+  dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 20
   OUTPUT_PATH: "./power2/heavyfactor4/"
   heavy_factor: 4.0
@@ -30,9 +30,9 @@ config_median5:
 
 config5:
   run: Yes
-  sequential_repetitions: 100
-  parallel_repetitions: 2
-  dim_list: [100]
+  sequential_repetitions: 50
+  parallel_repetitions: 4
+  dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 200
   heavy_factor: 4.0
   OUTPUT_PATH: "./power2/heavyfactor4/"
