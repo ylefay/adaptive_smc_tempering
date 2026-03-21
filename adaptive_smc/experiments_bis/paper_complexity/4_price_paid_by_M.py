@@ -109,7 +109,7 @@ if __name__ == "__main__":
     yaml_file = "4_price_paid_by_M.yaml"
 
     with open(yaml_file, "r") as file:
-        y_config = yaml.load(file, Loader=yaml.FullLoader)
+        y_config = yaml.safe_load(file)
 
     for name_of_my_config, config in y_config.items():
 

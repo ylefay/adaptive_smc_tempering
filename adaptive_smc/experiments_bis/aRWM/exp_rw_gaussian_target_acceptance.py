@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     yaml_file = "exp_rw_gaussian_target_acceptance.yaml"
     with open(yaml_file, "r") as file:
-        y_config = yaml.load(file, Loader=yaml.FullLoader)
+        y_config = yaml.safe_load(file)
     for name_of_my_config, config in y_config.items():
         if config.get('run', True):
             sequential_repetitions = config.pop('sequential_repetitions', 1)

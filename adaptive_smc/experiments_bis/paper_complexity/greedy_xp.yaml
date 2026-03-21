@@ -1,0 +1,24 @@
+config4: #to rerun maybe
+  run: Yes
+  sequential_repetitions: 10
+  parallel_repetitions: 20
+  dim_list: [ 10 ]
+  eps: 0.5
+  num_parallel_chain: 20
+  num_mcmc_steps: 200
+  heavy_factor: 0.5
+  OUTPUT_PATH: "./power2WFgreedy/heavyfactor05/"
+  prefix: "_"
+
+
+config5:
+  run: Yes
+  sequential_repetitions: 10
+  parallel_repetitions: 20
+  dim_list: [ 10 ]
+  eps: 0.5
+  num_parallel_chain: 20
+  num_mcmc_steps: 200
+  heavy_factor: 4.0
+  OUTPUT_PATH: "./power2WFgreedy/heavyfactor4/"
+  prefix: "_"
