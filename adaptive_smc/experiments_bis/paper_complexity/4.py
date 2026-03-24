@@ -67,7 +67,7 @@ def xp(config, eps, keys):
 
     # Generate model
     model_key = jax.random.PRNGKey(0)
-    loglikelihood_fn, base_measure_sampler, logbase_density_fn, true_log_Z = make_model(dim, config.get('heavy_factor', 1.0), model_key)
+    loglikelihood_fn, base_measure_sampler, logbase_density_fn, true_log_Z = make_model(dim, config.get('heavy_factor', 1.0), model_key, config.get('mean', None))
 
     run_config.update({
         "eps": eps,

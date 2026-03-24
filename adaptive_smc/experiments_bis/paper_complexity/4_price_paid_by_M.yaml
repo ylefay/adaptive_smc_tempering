@@ -5,8 +5,9 @@ config_median4:
   dim_list: [1, 5, 10, 20, 50]
   num_parallel_chain: 2
   num_mcmc_steps: 200
-  OUTPUT_PATH: "./power2WF_price_paid_by_M/heavyfactor05/"
   heavy_factor: 0.5
+  mean: 1.
+  OUTPUT_PATH: "./power2WF_price_paid_by_M/heavyfactor05/"
   prefix: "_median"
 
 config4: #to rerun maybe
@@ -17,6 +18,7 @@ config4: #to rerun maybe
   num_mcmc_steps: 200
   num_parallel_chain: 20
   heavy_factor: 0.5
+  mean: 1.
   OUTPUT_PATH: "./power2WF_price_paid_by_M/heavyfactor05/"
   prefix: "_"
   
@@ -27,8 +29,9 @@ config_median5:
   dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 200
   num_parallel_chain: 2
-  OUTPUT_PATH: "./power2WF_price_paid_by_M/heavyfactor4/"
   heavy_factor: 4.0
+  mean: 1.
+  OUTPUT_PATH: "./power2WF_price_paid_by_M/heavyfactor4/"
   prefix: "_median"
 
 config5:
@@ -39,5 +42,6 @@ config5:
   dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 200
   heavy_factor: 4.0
+  mean: 1.
   OUTPUT_PATH: "./power2WF_price_paid_by_M/heavyfactor4/"
   prefix: "_"

@@ -34,15 +34,18 @@ def xp(config, keys):
     target_ess = 0.5
     eps = run_config["eps"]
     T = int(jnp.sqrt(dim))
-
+    
     num_parallel_chain = run_config["num_parallel_chain"]
-    num_mcmc_steps = int(
+    tempering_length = int(T * 1.5)
+    total_budget = tempering_length * int(
         run_config["num_mcmc_steps"] * dim ** 2.0 // 2)
-    tempering_length = T * 2
-
+    budget_last_it = int(
+        run_config["num_mcmc_steps"] * dim ** 2.0 // 2 / eps**2)
+    budget_per_it_before_last_it = (total_budget - budget_last_it)/(tempering_length - 1)
+    
     num_mcmc_steps_schedule = jnp.zeros((tempering_length,), dtype=int)
-    num_mcmc_steps_schedule = num_mcmc_steps_schedule.at[:-1].set(int(num_mcmc_steps * eps ** 2))
-    num_mcmc_steps_schedule = num_mcmc_steps_schedule.at[-1].set(num_mcmc_steps)
+    num_mcmc_steps_schedule = num_mcmc_steps_schedule.at[:-1].set(int(budget_per_it_before_last_it))
+    num_mcmc_steps_schedule = num_mcmc_steps_schedule.at[-1].set(budget_last_it)
 
     tempering_sequence = jnp.linspace(0, 1, tempering_length)
 
@@ -103,7 +106,7 @@ if __name__ == "__main__":
         if config.get("run", True):
             # Set a list of dimensions to vary
             dim_list = config.get("dim_list", [5])
-
+            eps_list = config.get("eps_list")
             sequential_repetitions = config.pop("sequential_repetitions", 1)
             parallel_repetitions = config["parallel_repetitions"]
 
@@ -119,6 +122,7 @@ if __name__ == "__main__":
             for dim in dim_list:
                 # update config with current dim
                 config["dim"] = dim
-
-                for keys in all_keys:
-                    xp(config, keys)
+                for eps in eps_list:
+                    config["eps"] = eps
+                    for keys in all_keys:
+                        xp(config, keys)
