@@ -1645,7 +1645,7 @@ class GenericGreedyWasteFreeTemperingSMC:
             _log_weights = jnp.where(mask[None, :], _log_weights, -jnp.inf)
 
             eps = 1e-2
-            dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0. + eps, 1.0, eps,
+            dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights, num_mcmc_steps_schedule[0] * num_parallel_chain) - jnp.log(target_ess), 0. + eps, 1.0, eps,
                                10)
             dlmbda = jnp.clip(dlmbda, 0., 1.0)
             tempering_sequence = tempering_sequence.at[0].set(dlmbda)
@@ -1735,7 +1735,7 @@ class GenericGreedyWasteFreeTemperingSMC:
                 _log_weights = jnp.where(mask[None, :], _log_weights, -jnp.inf)
 
                 eps = 1e-2
-                dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights) - jnp.log(target_ess), 0. + eps,
+                dlmbda = dichotomy(lambda dlmbda: log_ess(dlmbda, _log_weights, num_mcmc_steps_schedule[i - 1] * num_parallel_chain) - jnp.log(target_ess), 0. + eps,
                                    1.0 - tempering_sequence.at[i - 1].get(), eps, 10)
                 dlmbda = jnp.clip(dlmbda, 0., 1.0 - tempering_sequence.at[i - 1].get())
                 tempering_sequence = tempering_sequence.at[i].set(tempering_sequence.at[i - 1].get() + dlmbda)

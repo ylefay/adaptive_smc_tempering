@@ -34,15 +34,15 @@ def xp(config, keys):
     target_ess = 0.5
     eps = run_config["eps"]
     T = int(jnp.sqrt(dim))
-    
+
     num_parallel_chain = run_config["num_parallel_chain"]
     tempering_length = int(T * 1.5)
     total_budget = tempering_length * int(
         run_config["num_mcmc_steps"] * dim ** 2.0 // 2)
     budget_last_it = int(
-        run_config["num_mcmc_steps"] * dim ** 2.0 // 2 / eps**2)
-    budget_per_it_before_last_it = (total_budget - budget_last_it)/(tempering_length - 1)
-    
+        run_config["num_mcmc_steps"] * dim ** 2.0 // 2 / eps ** 2)
+    budget_per_it_before_last_it = (total_budget - budget_last_it) / max(tempering_length - 1, 1)
+
     num_mcmc_steps_schedule = jnp.zeros((tempering_length,), dtype=int)
     num_mcmc_steps_schedule = num_mcmc_steps_schedule.at[:-1].set(int(budget_per_it_before_last_it))
     num_mcmc_steps_schedule = num_mcmc_steps_schedule.at[-1].set(budget_last_it)
@@ -71,6 +71,7 @@ def xp(config, keys):
     )
 
     num_mcmc_steps = int(jnp.max(num_mcmc_steps_schedule))
+    jax.config.update('jax_disable_jit', True)
 
     @jax.jit
     @jax.vmap
