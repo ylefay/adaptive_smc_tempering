@@ -35,7 +35,7 @@ import yaml
 
 jax.config.update("jax_enable_x64", False)
 
-OP_key = jax.random.PRNGKey(2)
+OP_key = jax.random.PRNGKey(12)
 _, key = jax.random.split(OP_key)
 
 
@@ -54,7 +54,8 @@ def xp(config, eps, keys):
     run_config = dict(config)
     
     dim = run_config["dim"]
-    target_ess = 0.5
+    target_ess = run_config.get("ess", None)
+    
 
     T = int(jnp.sqrt(dim))
     gamma = 1 / dim

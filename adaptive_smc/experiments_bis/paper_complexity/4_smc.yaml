@@ -5,7 +5,7 @@ config_median4:
   dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 20
   heavy_factor: 0.5
-  mean: 0.5
+  mean: 0.
   OUTPUT_PATH: "./power2/heavyfactor05/"
   prefix: "_median"
 
@@ -16,7 +16,7 @@ config4: #to rerun maybe
   dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 200
   heavy_factor: 0.5
-  mean: 0.5
+  mean: 0.
   OUTPUT_PATH: "./power2/heavyfactor05/"
   prefix: "_"
   
@@ -27,7 +27,7 @@ config_median5:
   dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 20
   heavy_factor: 4.0
-  mean: 0.5
+  mean: 0.
   OUTPUT_PATH: "./power2/heavyfactor4/"
   prefix: "_median"
 
@@ -38,6 +38,6 @@ config5:
   dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 200
   heavy_factor: 4.0
-  mean: 0.5
+  mean: 0.
   OUTPUT_PATH: "./power2/heavyfactor4/"
   prefix: "_"

@@ -1,11 +1,11 @@
 config_median4:
-  run: Yes
+  run: No
   sequential_repetitions: 16 # 16
   parallel_repetitions: 125
   dim_list: [ 1, 5, 10, 20, 50] #1, 5, 10, 20,
   num_mcmc_steps: 20
   heavy_factor: 0.5
-  mean: 1.
+  mean: 0.
   OUTPUT_PATH: "./power2WF/heavyfactor05/"
   prefix: "_median"
 
@@ -13,31 +13,31 @@ config4: #to rerun maybe
   run: Yes
   sequential_repetitions: 10 #10
   parallel_repetitions: 20
-  dim_list: [1, 5, 10, 20, 50]
+  dim_list: [1, 5, 10, 20] #1, 5, 10, 20, 
   num_mcmc_steps: 200
   heavy_factor: 0.5
-  mean: 1.
+  mean: 0.
   OUTPUT_PATH: "./power2WF/heavyfactor05/"
   prefix: "_"
   
 config_median5:
-  run: Yes
+  run: No
   sequential_repetitions: 16
   parallel_repetitions: 125
   dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 20
   heavy_factor: 4.0
-  mean: 1.
+  mean: 0.
   OUTPUT_PATH: "./power2WF/heavyfactor4/"
   prefix: "_median"
 
 config5:
-  run: Yes
+  run: No
   sequential_repetitions: 10
   parallel_repetitions: 20
   dim_list: [1, 5, 10, 20, 50]
   num_mcmc_steps: 200
   heavy_factor: 4.0
-  mean: 1.
+  mean: 0.
   OUTPUT_PATH: "./power2WF/heavyfactor4/"
   prefix: "_"

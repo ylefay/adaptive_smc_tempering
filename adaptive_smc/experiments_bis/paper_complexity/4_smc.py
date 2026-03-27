@@ -46,7 +46,7 @@ def xp(config, eps, keys):
     run_config = dict(config)
 
     dim = run_config["dim"]
-    target_ess = 0.5
+    target_ess = run_config.get("ess", None)
 
     T = int(jnp.sqrt(dim))
     gamma = 1 / dim
