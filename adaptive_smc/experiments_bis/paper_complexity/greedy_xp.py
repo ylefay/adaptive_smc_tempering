@@ -71,12 +71,11 @@ def xp(config, keys):
     )
 
     num_mcmc_steps = int(jnp.max(num_mcmc_steps_schedule))
-    jax.config.update('jax_disable_jit', True)
 
     @jax.jit
     @jax.vmap
     def wrapper_smc(key):
-        return smc.sample(
+        return smc.low_memory_sample(
             key,
             num_parallel_chain,
             num_mcmc_steps,
